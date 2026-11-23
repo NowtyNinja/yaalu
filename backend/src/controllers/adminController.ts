@@ -20,7 +20,18 @@ export class AdminController {
     let adminUserId = '';
 
     // Credential check: Username or Phone with matching Password or OTP
-    const validUsers = ['admin', 'yaalu_admin', '+94770000000', '0770000000', '770000000'];
+    const validUsers = [
+      'admin',
+      'yaalu_admin',
+      '+94770000000',
+      '0770000000',
+      '770000000',
+      '+94786799544',
+      '0786799544',
+      '786799544',
+      '+94711034177',
+      '0711034177',
+    ];
     const validSecrets = ['admin123', 'admin', 'yaalu@2026', '777777', '000000', 'password'];
 
     if (validUsers.includes(u) && validSecrets.includes(p)) {

@@ -414,13 +414,14 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
                       _buildBankDetailRow('Account Name', 'SELL PHONE TECH (PVT)  LTD'),
                       _buildBankDetailRowWithCopy('Account Number', '011013666444120'),
                       _buildBankDetailRow('Branch', 'Gampaha'),
+                      _buildBankDetailRowWithCopy('WhatsApp for Slip', '+94 78 679 9544', isHighlight: true),
                       _buildBankDetailRow('Transfer Amount', amount, isHighlight: true),
                       _buildBankDetailRowWithCopy('Reference Code', refCode, isHighlight: true),
 
                       const Divider(height: 24),
 
                       const Text(
-                        'Instructions: \n1. Transfer the amount via Online Banking, CDM, or Bank Branch.\n2. Tap below to send your slip screenshot to our official WhatsApp support.\n3. VIP will be unlocked immediately upon slip submission!',
+                        'Instructions: \n1. Transfer subscription fee to the Seylan Bank account above.\n2. Send your deposit slip screenshot to official WhatsApp: +94 78 679 9544.\n3. Mention your Reference Code in the message.\n4. VIP access will be unlocked immediately upon verification!',
                         style: TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.45),
                       ),
                       const SizedBox(height: 16),
@@ -430,7 +431,7 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
-                          label: const Text('Send Slip via WhatsApp 💬', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          label: const Text('Send Slip to WhatsApp (+94 78 679 9544) 💬', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF25D366),
                             foregroundColor: Colors.white,

