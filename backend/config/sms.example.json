@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "smsGatewayProvider": "notify_lk",
+  "senderId": "NotifyDEMO",
+  "notifyLkUserId": "",
+  "notifyLkApiKey": "",
+  "genericSmsUrl": "",
+  "twilioAccountSid": "",
+  "twilioAuthToken": "",
+  "twilioFromNumber": ""
+}

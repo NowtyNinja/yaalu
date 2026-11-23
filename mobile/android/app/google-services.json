@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "419671431605",
+    "project_id": "yaalu-2771a",
+    "storage_bucket": "yaalu-2771a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:419671431605:android:193da08ef00ccd259a61fc",
+        "android_client_info": {
+          "package_name": "com.yaalu.dating"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqMcKEiGFn-QX1lB-tt36YzrbVBVIredM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

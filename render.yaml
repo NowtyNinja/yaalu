@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: yaalu-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: API_PREFIX
+        value: /api/v1
+      - key: SMS_GATEWAY_PROVIDER
+        value: notify_lk
+      - key: SMS_SENDER_ID
+        value: Sell4n.lk
+      - key: NOTIFY_LK_USER_ID
+        value: 12734
+      - key: NOTIFY_LK_API_KEY
+        value: ecT87jsXkL5DUbxhseqm
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: PAYHERE_MERCHANT_ID
+        value: 1220001
+      - key: PAYHERE_SECRET
+        value: yaalu_payhere_secret_hash_dev
+      - key: PAYHERE_ENV
+        value: sandbox

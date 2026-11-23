@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yaalu Dating App — Master Admin Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: {
+            coral: { DEFAULT: '#FF4B72', hover: '#E03A5F', light: '#FFF0F3' },
+            vipGold: '#D4AF37',
+            navyDark: '#0F172A',
+            surfaceBg: '#F8FAFC'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; }
+    .badge-verified { background: #E0F2FE; color: #0284C7; }
+    .badge-vip { background: #FEF3C7; color: #D97706; }
+    .badge-banned { background: #FEE2E2; color: #DC2626; }
+  </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- TOP NAV -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-coral to-rose-400 flex items-center justify-center text-white shadow-md shadow-coral/30">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xl font-extrabold text-slate-900 tracking-tight">Yaalu</span>
+            <span class="text-xs bg-slate-900 text-white font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Master Admin</span>
+          </div>
+          <p class="text-[11px] text-slate-400 font-medium">Sri Lanka's Premier Dating & Discovery Platform</p>
+        </div>
+      </div>
+
+      <div id="authHeaderArea" class="flex items-center gap-4">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </header>
+
+  <!-- LOGIN MODAL (Shown when not authenticated) -->
+  <div id="loginOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-coral-light flex items-center justify-center text-coral mb-3">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        </div>
+        <h2 class="text-2xl font-black text-slate-900">Admin Authentication</h2>
+        <p class="text-sm text-slate-500 mt-1">Enter your master administrator credentials</p>
+      </div>
+
+      <form id="adminLoginForm" action="javascript:void(0);" onsubmit="executeAdminLogin(); return false;" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Username / Phone</label>
+          <input type="text" id="loginUsername" value="admin" required
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-coral/20 focus:border-coral text-slate-900 font-medium" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Password / Master OTP</label>
+          <input type="password" id="loginPassword" value="admin123" required
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-coral/20 focus:border-coral text-slate-900 font-medium" />
+        </div>
+        <div id="loginError" class="text-red-500 text-xs font-semibold hidden"></div>
+        <button type="button" id="loginBtn" onclick="executeAdminLogin()"
+          class="w-full py-3.5 bg-gradient-to-r from-coral to-rose-500 text-white rounded-xl font-bold shadow-lg shadow-coral/30 hover:opacity-95 transition-all">
+          Unlock Admin Panel
+        </button>
+        <button type="button" id="quickUnlockBtn" onclick="quickDemoUnlock()"
+          class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 border border-slate-200">
+          ⚡ 1-Click Instant Unlock (Demo Admin)
+        </button>
+      </form>
+      <div class="mt-4 text-center text-xs text-slate-400">
+        Master Admin Credentials: <span class="font-bold text-slate-600">admin / admin123</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <main id="dashboardMain" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+    
+    <!-- STATS KPI GRID -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Users</span>
+          <span class="p-2 rounded-xl bg-blue-50 text-blue-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          </span>
+        </div>
+        <div class="text-3xl font-extrabold text-slate-900" id="statTotalUsers">0</div>
+        <div class="text-xs text-slate-500 mt-1 flex items-center gap-1.5 font-medium">
+          <span class="text-emerald-600 font-bold" id="statVerifiedUsers">0 verified</span> • <span id="statVipUsers">0 VIP</span>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Mutual Matches</span>
+          <span class="p-2 rounded-xl bg-rose-50 text-coral">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </span>
+        </div>
+        <div class="text-3xl font-extrabold text-slate-900" id="statTotalMatches">0</div>
+        <div class="text-xs text-slate-500 mt-1 font-medium">
+          <span id="statTotalMessages">0</span> real-time messages sent
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">VIP Revenue</span>
+          <span class="p-2 rounded-xl bg-amber-50 text-amber-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </span>
+        </div>
+        <div class="text-3xl font-extrabold text-slate-900" id="statTotalRevenue">LKR 0</div>
+        <div class="text-xs text-slate-500 mt-1 font-medium">
+          <span id="statTotalPayments">0</span> transactions processed
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Safety & Reports</span>
+          <span class="p-2 rounded-xl bg-purple-50 text-purple-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          </span>
+        </div>
+        <div class="text-3xl font-extrabold text-slate-900" id="statTotalReports">0</div>
+        <div class="text-xs text-slate-500 mt-1 font-medium">
+          Zero-Trust Security Active
+        </div>
+      </div>
+    </section>
+
+    <!-- NAVIGATION TABS -->
+    <div class="flex items-center justify-between border-b border-slate-200">
+      <nav class="flex space-x-6" id="tabNav">
+        <button onclick="switchTab('users')" id="tabBtnUsers" class="pb-3 text-sm font-bold border-b-2 border-coral text-coral transition-colors flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          User Management
+        </button>
+        <button onclick="switchTab('payments')" id="tabBtnPayments" class="pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+          Bank Transfer Approvals
+          <span id="pendingPaymentsBadge" class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-extrabold hidden">0</span>
+        </button>
+        <button onclick="switchTab('reports')" id="tabBtnReports" class="pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          UGC Reports & Moderation
+        </button>
+        <button onclick="switchTab('firebase')" id="tabBtnFirebase" class="pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-2">
+          <span class="text-base leading-none">💬</span>
+          SMS Gateway (Notify.lk)
+        </button>
+      </nav>
+
+      <button onclick="loadAllAdminData()" class="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-50 shadow-sm flex items-center gap-1.5 transition-all">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        Refresh Data
+      </button>
+    </div>
+
+    <!-- TAB 1: USER MANAGEMENT -->
+    <section id="panelUsers" class="space-y-4">
+      <div class="flex items-center justify-between gap-4">
+        <div class="relative flex-1 max-w-md">
+          <input type="text" id="userSearchInput" oninput="debounceUserSearch()" placeholder="Search users by name, phone, or district..."
+            class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-coral/20 focus:border-coral" />
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+        <div class="text-xs font-semibold text-slate-500" id="usersCountLabel">Loading users...</div>
+      </div>
+
+      <div class="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50/80 border-b border-slate-200 text-xs font-bold uppercase text-slate-500">
+              <tr>
+                <th class="py-3.5 px-4">User</th>
+                <th class="py-3.5 px-4">Contact & Location</th>
+                <th class="py-3.5 px-4">Status & VIP</th>
+                <th class="py-3.5 px-4 text-right">Moderation Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody" class="divide-y divide-slate-100">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: BANK TRANSFERS & PAYMENTS -->
+    <section id="panelPayments" class="space-y-4 hidden">
+      <div class="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-slate-900">Bank Transfer Verification & Submissions</h3>
+            <p class="text-xs text-slate-500">Approve user payment slips to unlock Yaalu VIP tiers</p>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50/80 border-b border-slate-200 text-xs font-bold uppercase text-slate-500">
+              <tr>
+                <th class="py-3.5 px-4">User & Order ID</th>
+                <th class="py-3.5 px-4">Plan & Amount</th>
+                <th class="py-3.5 px-4">Bank / Reference Note</th>
+                <th class="py-3.5 px-4">Status</th>
+                <th class="py-3.5 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="paymentsTableBody" class="divide-y divide-slate-100">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: UGC REPORTS & MODERATION -->
+    <section id="panelReports" class="space-y-4 hidden">
+      <div class="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
+        <div class="p-4 border-b border-slate-100">
+          <h3 class="font-bold text-slate-900">Apple & Google Play UGC Safety Reports</h3>
+          <p class="text-xs text-slate-500">User-generated safety reports requiring administrator review</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50/80 border-b border-slate-200 text-xs font-bold uppercase text-slate-500">
+              <tr>
+                <th class="py-3.5 px-4">Reported User</th>
+                <th class="py-3.5 px-4">Reporter</th>
+                <th class="py-3.5 px-4">Reason & Description</th>
+                <th class="py-3.5 px-4">Report Date</th>
+                <th class="py-3.5 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="reportsTableBody" class="divide-y divide-slate-100">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: SMS GATEWAY CONFIG (NOTIFY.LK) -->
+    <section id="panelFirebase" class="space-y-6 hidden">
+      <!-- Status Card -->
+      <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-6 shadow-xl border border-slate-700">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2.5 mb-1.5">
+              <span class="text-2xl">🇱🇰</span>
+              <h3 class="text-lg font-black tracking-tight">SMS Gateway & Live OTP Service</h3>
+              <span id="fbLiveStatusBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                🟡 Initializing...
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 max-w-2xl">
+              High-speed SMS OTP dispatch powered by Notify.lk for all Sri Lankan mobile networks (Dialog, Mobitel, Airtel, Hutch).
+            </p>
+          </div>
+          <button onclick="loadFirebaseConfig()" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold border border-white/15 transition-all flex items-center gap-2 self-start md:self-auto">
+            🔄 Refresh Status
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Credentials Form -->
+        <div class="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
+          <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
+            <h4 class="font-extrabold text-slate-900 text-base">SMS Gateway Configuration</h4>
+            <span class="text-[11px] font-semibold text-slate-400">Auto-saved to backend/config/sms.json</span>
+          </div>
+
+          <form id="fbConfigForm" onsubmit="saveFirebaseConfig(event)" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">SMS Gateway Provider</label>
+                <select id="fbProviderSelect" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold bg-slate-50 focus:bg-white">
+                  <option value="notify_lk">🇱🇰 Notify.lk (Sri Lanka SMS Gateway - Recommended)</option>
+                  <option value="mock">⚡ Mock Mode (Instant Test OTP: 777777)</option>
+                  <option value="generic">🌐 Custom HTTP SMS Gateway URL</option>
+                  <option value="twilio">🌍 Twilio Global SMS</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Active Status</label>
+                <select id="fbEnabledSelect" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold bg-slate-50 focus:bg-white">
+                  <option value="true">Enabled (Use Live SMS)</option>
+                  <option value="false">Disabled (Fallback to Mock)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-100 space-y-3">
+              <h5 class="text-xs font-bold text-slate-800 uppercase flex items-center gap-2">
+                <span>🇱🇰</span> Notify.lk Account Credentials
+              </h5>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Notify.lk User ID</label>
+                  <input type="text" id="notifyLkUserIdInput" placeholder="e.g. 12734"
+                    class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium bg-white" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Notify.lk API Key</label>
+                  <input type="password" id="notifyLkApiKeyInput" placeholder="API key from notify.lk"
+                    class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium bg-white" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Sender ID (Default: NotifyDEMO)</label>
+                  <input type="text" id="smsSenderIdInput" placeholder="NotifyDEMO"
+                    class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium bg-white" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">
+                Custom SMS Gateway URL (Optional, Placeholders: {phone}, {code}, {message})
+              </label>
+              <input type="text" id="genericSmsUrlInput" placeholder="https://api.provider.com/send?to={phone}&msg={code}&key=..."
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium" />
+            </div>
+
+            <div id="fbSaveAlert" class="hidden p-3 rounded-xl text-xs font-bold"></div>
+
+            <button type="submit" id="fbSaveBtn"
+              class="w-full py-3.5 bg-gradient-to-r from-coral to-rose-500 text-white rounded-xl font-bold text-sm shadow-md shadow-coral/30 hover:opacity-95 transition-all">
+              💾 Save SMS Gateway Settings
+            </button>
+          </form>
+        </div>
+
+        <!-- SMS Test & Setup Instructions -->
+        <div class="space-y-6">
+          <!-- Live Test SMS Box -->
+          <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+            <h4 class="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+              <span>📱</span> Test SMS Dispatch
+            </h4>
+            <p class="text-xs text-slate-500">Send an instant test OTP to verify that Notify.lk is dispatching messages correctly.</p>
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Test Phone Number</label>
+              <input type="text" id="testSmsPhoneInput" placeholder="+94771234567"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold" />
+            </div>
+
+            <div id="testSmsResult" class="hidden p-3 rounded-xl text-xs font-semibold"></div>
+
+            <button type="button" onclick="executeTestSms()" id="testSmsBtn"
+              class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2">
+              <span>🚀</span> Dispatch Test SMS
+            </button>
+          </div>
+
+          <!-- Where to find Notify.lk Credentials Card -->
+          <div class="bg-emerald-50/70 border border-emerald-200/80 p-5 rounded-3xl space-y-2.5">
+            <h5 class="text-xs font-black text-emerald-900 flex items-center gap-1.5 uppercase tracking-wide">
+              <span>🇱🇰</span> Notify.lk Setup Guide
+            </h5>
+            <ol class="text-xs text-emerald-950/80 space-y-1.5 list-decimal pl-4 leading-relaxed font-medium">
+              <li>Log in to <a href="https://app.notify.lk" target="_blank" class="underline font-bold text-emerald-900">Notify.lk Dashboard</a>.</li>
+              <li>Under <strong>API Keys</strong>, copy your <strong>User ID</strong> and <strong>API Key</strong>.</li>
+              <li>For Free/Testing mode, keep Sender ID as <strong>NotifyDEMO</strong>.</li>
+              <li>Check your <strong>SMS Balance / Credits</strong> to ensure you can send live SMS.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live SMS Dispatch Log Table -->
+      <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">📨</span>
+            <div>
+              <h4 class="font-extrabold text-slate-900 text-sm">Real-time SMS Dispatch History</h4>
+              <p class="text-[11px] text-slate-400">View real-time OTP codes generated by the server for verification</p>
+            </div>
+          </div>
+          <button onclick="loadSmsLogs()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors flex items-center gap-1.5">
+            🔄 Refresh Logs
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="text-slate-400 font-bold border-b border-slate-100 uppercase tracking-wider text-[10px]">
+                <th class="py-2.5 px-3">Timestamp</th>
+                <th class="py-2.5 px-3">Phone</th>
+                <th class="py-2.5 px-3">OTP Code</th>
+                <th class="py-2.5 px-3">Gateway</th>
+                <th class="py-2.5 px-3">Status</th>
+                <th class="py-2.5 px-3">Message / Details</th>
+              </tr>
+            </thead>
+            <tbody id="smsLogsTableBody" class="divide-y divide-slate-100 font-medium">
+              <tr><td colspan="6" class="py-4 text-center text-slate-400">Loading SMS logs...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- VIP GRANT MODAL -->
+  <div id="vipModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
+      <h3 class="text-lg font-bold text-slate-900 mb-1">Grant VIP Subscription</h3>
+      <p class="text-xs text-slate-500 mb-4" id="vipModalUserName">Select subscription tier to activate</p>
+      <input type="hidden" id="vipModalUserId" />
+      <div class="space-y-3">
+        <label class="block text-xs font-bold text-slate-700">VIP Tier</label>
+        <select id="vipTierSelect" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold">
+          <option value="vip_weekly">Weekly VIP (7 Days) - LKR 950</option>
+          <option value="vip_monthly" selected>Monthly VIP (30 Days) - LKR 2,450</option>
+          <option value="vip_3month">3-Month VIP (90 Days) - LKR 5,900</option>
+          <option value="vip_annual">Annual VIP (365 Days) - LKR 14,900</option>
+        </select>
+      </div>
+      <div class="mt-6 flex gap-3">
+        <button onclick="closeVipModal()" class="flex-1 py-2.5 text-xs font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200">Cancel</button>
+        <button onclick="submitGrantVip()" class="flex-1 py-2.5 text-xs font-bold text-white bg-coral rounded-xl hover:bg-coral-hover shadow-md shadow-coral/30">Activate VIP</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin + '/api/v1';
+    let currentAdminToken = localStorage.getItem('yaalu_admin_token') || sessionStorage.getItem('yaalu_admin_token');
+
+    // Init
+    window.addEventListener('DOMContentLoaded', () => {
+      // Wire up buttons programmatically as well
+      const loginBtn = document.getElementById('loginBtn');
+      if (loginBtn) loginBtn.addEventListener('click', executeAdminLogin);
+      const quickBtn = document.getElementById('quickUnlockBtn');
+      if (quickBtn) quickBtn.addEventListener('click', quickDemoUnlock);
+      const form = document.getElementById('adminLoginForm');
+      if (form) {
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          executeAdminLogin();
+        });
+      }
+
+      if (!currentAdminToken) {
+        showLoginOverlay();
+      } else {
+        hideLoginOverlay();
+        renderAuthHeader();
+        loadAllAdminData().catch(() => {
+          logoutAdmin();
+        });
+      }
+    });
+
+    function showLoginOverlay() {
+      const overlay = document.getElementById('loginOverlay');
+      if (overlay) overlay.classList.remove('hidden');
+    }
+
+    function hideLoginOverlay() {
+      const overlay = document.getElementById('loginOverlay');
+      if (overlay) overlay.classList.add('hidden');
+    }
+
+    function quickDemoUnlock() {
+      const uInput = document.getElementById('loginUsername');
+      const pInput = document.getElementById('loginPassword');
+      if (uInput) uInput.value = 'admin';
+      if (pInput) pInput.value = 'admin123';
+      executeAdminLogin();
+    }
+
+    async function executeAdminLogin(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      const uInput = document.getElementById('loginUsername');
+      const pInput = document.getElementById('loginPassword');
+      const u = uInput ? uInput.value.trim() : 'admin';
+      const p = pInput ? pInput.value.trim() : 'admin123';
+      const errBox = document.getElementById('loginError');
+      const loginBtn = document.getElementById('loginBtn');
+      
+      if (errBox) errBox.classList.add('hidden');
+      if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Verifying Credentials...';
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        if (data.success && data.data && data.data.token) {
+          currentAdminToken = data.data.token;
+          localStorage.setItem('yaalu_admin_token', currentAdminToken);
+          sessionStorage.setItem('yaalu_admin_token', currentAdminToken);
+          hideLoginOverlay();
+          renderAuthHeader();
+          await loadAllAdminData();
+        } else {
+          if (errBox) {
+            errBox.textContent = data.message || 'Invalid administrator credentials. Try admin / admin123';
+            errBox.classList.remove('hidden');
+          }
+        }
+      } catch (err) {
+        if (errBox) {
+          errBox.textContent = 'Server connection error: ' + err.message;
+          errBox.classList.remove('hidden');
+        }
+      } finally {
+        if (loginBtn) {
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Unlock Admin Panel';
+        }
+      }
+    }
+
+    // Alias for compatibility
+    const handleAdminLogin = executeAdminLogin;
+
+    function logoutAdmin() {
+      localStorage.removeItem('yaalu_admin_token');
+      sessionStorage.removeItem('yaalu_admin_token');
+      currentAdminToken = null;
+      showLoginOverlay();
+      renderAuthHeader();
+    }
+
+    function renderAuthHeader() {
+      const area = document.getElementById('authHeaderArea');
+      if (currentAdminToken) {
+        area.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-bold text-slate-700">Logged in as Master Admin</span>
+          </div>
+          <button onclick="logoutAdmin()" class="text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl transition-colors">
+            Logout
+          </button>
+        `;
+      } else {
+        area.innerHTML = `
+          <button onclick="showLoginOverlay()" class="text-xs font-bold text-white bg-slate-900 px-4 py-2 rounded-xl">
+            Admin Login
+          </button>
+        `;
+      }
+    }
+
+    function switchTab(tab) {
+      document.getElementById('panelUsers').classList.toggle('hidden', tab !== 'users');
+      document.getElementById('panelPayments').classList.toggle('hidden', tab !== 'payments');
+      document.getElementById('panelReports').classList.toggle('hidden', tab !== 'reports');
+      document.getElementById('panelFirebase').classList.toggle('hidden', tab !== 'firebase');
+
+      const tabs = ['Users', 'Payments', 'Reports', 'Firebase'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('tabBtn' + t);
+        if (!btn) return;
+        const isActive = t.toLowerCase() === tab;
+        btn.className = isActive
+          ? 'pb-3 text-sm font-bold border-b-2 border-coral text-coral transition-colors flex items-center gap-2'
+          : 'pb-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-2';
+      });
+
+      if (tab === 'firebase') {
+        loadFirebaseConfig();
+      }
+    }
+
+    async function authFetch(url, options = {}) {
+      if (!options.headers) options.headers = {};
+      options.headers['Authorization'] = `Bearer ${currentAdminToken}`;
+      options.headers['Content-Type'] = 'application/json';
+
+      const res = await fetch(url, options);
+      if (res.status === 401 || res.status === 403) {
+        logoutAdmin();
+        throw new Error('Session expired. Please log in again.');
+      }
+      return res.json();
+    }
+
+    async function loadAllAdminData() {
+      await Promise.all([
+        loadStats(),
+        loadUsers(),
+        loadPayments(),
+        loadReports(),
+      ]);
+    }
+
+    async function loadStats() {
+      try {
+        const res = await authFetch(`${API_BASE}/admin/stats`);
+        if (res.success && res.data) {
+          const s = res.data;
+          document.getElementById('statTotalUsers').textContent = s.totalUsers;
+          document.getElementById('statVerifiedUsers').textContent = `${s.verifiedUsers} verified`;
+          document.getElementById('statVipUsers').textContent = `${s.vipUsers} VIP`;
+          document.getElementById('statTotalMatches').textContent = s.totalMatches;
+          document.getElementById('statTotalMessages').textContent = s.totalMessages;
+          document.getElementById('statTotalRevenue').textContent = `LKR ${s.totalRevenueLkr.toLocaleString()}`;
+          document.getElementById('statTotalPayments').textContent = s.totalPayments;
+          document.getElementById('statTotalReports').textContent = s.totalReports;
+        }
+      } catch (_) {}
+    }
+
+    let searchTimeout = null;
+    function debounceUserSearch() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(loadUsers, 300);
+    }
+
+    async function loadUsers() {
+      const q = document.getElementById('userSearchInput').value.trim();
+      const tbody = document.getElementById('usersTableBody');
+      const countLabel = document.getElementById('usersCountLabel');
+      tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400">Loading user profiles...</td></tr>';
+
+      try {
+        const res = await authFetch(`${API_BASE}/admin/users?q=${encodeURIComponent(q)}`);
+        if (res.success && res.data) {
+          const users = res.data.users;
+          countLabel.textContent = `${users.length} users registered`;
+          if (users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400">No users found matching query.</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = users.map(u => {
+            const isVerified = u.verificationStatus === 'verified';
+            const isVip = u.subscriptionTier !== 'free';
+            const photo = (u.photos && u.photos.length > 0) ? u.photos[0] : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100';
+
+            return `
+              <tr class="hover:bg-slate-50/60 transition-colors">
+                <td class="py-3 px-4">
+                  <div class="flex items-center gap-3">
+                    <img src="${photo}" class="w-10 h-10 rounded-xl object-cover border border-slate-200" />
+                    <div>
+                      <div class="font-bold text-slate-900 flex items-center gap-1.5">
+                        ${u.displayName}, ${u.age}
+                        ${isVerified ? '<span class="text-blue-500" title="Verified Blue Badge">🛡️</span>' : ''}
+                      </div>
+                      <div class="text-xs text-slate-400">${u.gender} • Joined ${new Date(u.createdAt).toLocaleDateString()}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-3 px-4">
+                  <div class="font-semibold text-slate-800 text-xs">${u.phone}</div>
+                  <div class="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                    📍 ${u.homeDistrict}
+                  </div>
+                </td>
+                <td class="py-3 px-4">
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    ${isVerified ? '<span class="badge-verified text-[11px] font-bold px-2 py-0.5 rounded-md">Verified</span>' : '<span class="bg-slate-100 text-slate-500 text-[11px] font-bold px-2 py-0.5 rounded-md">Unverified</span>'}
+                    ${isVip ? `<span class="badge-vip text-[11px] font-bold px-2 py-0.5 rounded-md uppercase">${u.subscriptionTier.replace('vip_', '')} VIP</span>` : '<span class="bg-slate-100 text-slate-500 text-[11px] font-bold px-2 py-0.5 rounded-md">Free</span>'}
+                    ${u.isBanned ? '<span class="badge-banned text-[11px] font-bold px-2 py-0.5 rounded-md">Banned</span>' : ''}
+                  </div>
+                </td>
+                <td class="py-3 px-4 text-right">
+                  <div class="flex items-center justify-end gap-1.5">
+                    <button onclick="toggleVerifyUser('${u.id}', ${!isVerified})"
+                      class="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700">
+                      ${isVerified ? 'Revoke Blue' : 'Grant 🛡️ Blue'}
+                    </button>
+                    <button onclick="openVipModal('${u.id}', '${u.displayName}')"
+                      class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100">
+                      +VIP
+                    </button>
+                    <button onclick="toggleBanUser('${u.id}', ${!u.isBanned})"
+                      class="px-2.5 py-1 text-xs font-semibold rounded-lg ${u.isBanned ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}">
+                      ${u.isBanned ? 'Unban' : 'Ban'}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500">${e.message}</td></tr>`;
+      }
+    }
+
+    async function toggleVerifyUser(userId, makeVerified) {
+      try {
+        await authFetch(`${API_BASE}/admin/users/${userId}/verify`, {
+          method: 'PATCH',
+          body: JSON.stringify({ isVerified: makeVerified })
+        });
+        loadUsers();
+        loadStats();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function toggleBanUser(userId, makeBanned) {
+      if (!confirm(`Are you sure you want to ${makeBanned ? 'BAN' : 'UNBAN'} this user?`)) return;
+      try {
+        await authFetch(`${API_BASE}/admin/users/${userId}/ban`, {
+          method: 'PATCH',
+          body: JSON.stringify({ isBanned: makeBanned })
+        });
+        loadUsers();
+        loadStats();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    function openVipModal(userId, name) {
+      document.getElementById('vipModalUserId').value = userId;
+      document.getElementById('vipModalUserName').textContent = `Activating Yaalu VIP for: ${name}`;
+      document.getElementById('vipModal').classList.remove('hidden');
+    }
+
+    function closeVipModal() {
+      document.getElementById('vipModal').classList.add('hidden');
+    }
+
+    async function submitGrantVip() {
+      const userId = document.getElementById('vipModalUserId').value;
+      const tier = document.getElementById('vipTierSelect').value;
+      const days = tier === 'vip_weekly' ? 7 : tier === 'vip_monthly' ? 30 : tier === 'vip_3month' ? 90 : 365;
+
+      try {
+        await authFetch(`${API_BASE}/admin/users/${userId}/vip`, {
+          method: 'PATCH',
+          body: JSON.stringify({ tier, durationDays: days })
+        });
+        closeVipModal();
+        loadUsers();
+        loadStats();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function loadPayments() {
+      const tbody = document.getElementById('paymentsTableBody');
+      const badge = document.getElementById('pendingPaymentsBadge');
+      try {
+        const res = await authFetch(`${API_BASE}/admin/payments`);
+        if (res.success && res.data) {
+          const payments = res.data.payments;
+          const pendingCount = payments.filter(p => p.status === 'pending').length;
+          badge.textContent = pendingCount;
+          badge.classList.toggle('hidden', pendingCount === 0);
+
+          if (payments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-400">No payment transactions recorded yet.</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = payments.map(p => {
+            const isSuccess = p.status === 'success';
+            return `
+              <tr class="hover:bg-slate-50/60 transition-colors">
+                <td class="py-3 px-4">
+                  <div class="font-bold text-slate-900">${p.userName}</div>
+                  <div class="text-xs text-slate-400 font-mono">${p.orderId}</div>
+                </td>
+                <td class="py-3 px-4">
+                  <div class="font-extrabold text-slate-900">LKR ${p.amount.toLocaleString()}</div>
+                  <div class="text-xs font-semibold text-amber-700 uppercase">${p.tier.replace('vip_', '')} Plan</div>
+                </td>
+                <td class="py-3 px-4">
+                  <div class="text-xs font-semibold text-slate-700">${p.bankName || p.provider.replace('_', ' ')}</div>
+                  <div class="text-xs text-slate-500">${p.referenceCode || p.slipNote || 'Bank Deposit / Slip'}</div>
+                </td>
+                <td class="py-3 px-4">
+                  <span class="px-2 py-0.5 text-[11px] font-bold rounded-md ${isSuccess ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} uppercase">
+                    ${p.status}
+                  </span>
+                </td>
+                <td class="py-3 px-4 text-right">
+                  ${!isSuccess ? `
+                    <button onclick="approvePayment('${p.id}')"
+                      class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm">
+                      Approve VIP
+                    </button>
+                  ` : '<span class="text-xs font-semibold text-emerald-600">✓ VIP Activated</span>'}
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500">${e.message}</td></tr>`;
+      }
+    }
+
+    async function approvePayment(paymentId) {
+      if (!confirm('Confirm bank transfer approval and activate Yaalu VIP for this user?')) return;
+      try {
+        await authFetch(`${API_BASE}/admin/payments/${paymentId}/approve`, { method: 'POST' });
+        loadPayments();
+        loadUsers();
+        loadStats();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function loadReports() {
+      const tbody = document.getElementById('reportsTableBody');
+      try {
+        const res = await authFetch(`${API_BASE}/admin/reports`);
+        if (res.success && res.data) {
+          const reports = res.data.reports;
+          if (reports.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-400">🛡️ No pending safety reports. Community is 100% clean!</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = reports.map(r => {
+            return `
+              <tr class="hover:bg-slate-50/60 transition-colors">
+                <td class="py-3 px-4">
+                  <div class="font-bold text-slate-900">${r.reportedName}</div>
+                  <div class="text-xs text-slate-400 font-mono">${r.reportedUserId}</div>
+                </td>
+                <td class="py-3 px-4">
+                  <div class="text-xs font-semibold text-slate-700">${r.reporterName}</div>
+                </td>
+                <td class="py-3 px-4">
+                  <div class="inline-block px-2 py-0.5 rounded bg-red-50 text-red-700 text-[11px] font-bold uppercase mb-1">
+                    ${r.reason.replace('_', ' ')}
+                  </div>
+                  <div class="text-xs text-slate-600">${r.description || 'No comment provided'}</div>
+                </td>
+                <td class="py-3 px-4 text-xs text-slate-500">
+                  ${new Date(r.createdAt).toLocaleString()}
+                </td>
+                <td class="py-3 px-4 text-right">
+                  <div class="flex items-center justify-end gap-2">
+                    <button onclick="toggleBanUser('${r.reportedUserId}', true)" class="px-2.5 py-1 text-xs font-bold bg-red-600 text-white rounded-lg hover:bg-red-700">
+                      Ban User
+                    </button>
+                    <button onclick="dismissReport('${r.id}')" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200">
+                      Dismiss
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500">${e.message}</td></tr>`;
+      }
+    }
+
+    async function dismissReport(reportId) {
+      try {
+        await authFetch(`${API_BASE}/admin/reports/${reportId}`, { method: 'DELETE' });
+        loadReports();
+        loadStats();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    // --- Firebase & SMS Gateway JavaScript Controller ---
+    async function loadFirebaseConfig() {
+      const badge = document.getElementById('fbLiveStatusBadge');
+      try {
+        const json = await authFetch(`${API_BASE}/admin/firebase-config`);
+        if (json.success && json.data) {
+          const cfg = json.data;
+          
+          if (cfg.enabled && cfg.hasNotifyLk) {
+            badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            badge.textContent = `🟢 Notify.lk Live (${cfg.senderId || 'NotifyDEMO'})`;
+          } else if (cfg.enabled && (cfg.hasTwilio || cfg.genericSmsUrl)) {
+            badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            badge.textContent = `🟢 Active (${(cfg.smsGatewayProvider || '').toUpperCase()})`;
+          } else if (cfg.smsGatewayProvider === 'mock' || !cfg.enabled) {
+            badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30';
+            badge.textContent = '⚡ Mock Testing Mode (Code: 777777)';
+          } else {
+            badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-500/20 text-slate-400 border border-slate-500/30';
+            badge.textContent = '⚪ Awaiting Notify.lk Credentials';
+          }
+
+          document.getElementById('fbProviderSelect').value = cfg.smsGatewayProvider || 'notify_lk';
+          document.getElementById('fbEnabledSelect').value = cfg.enabled ? 'true' : 'false';
+          if (cfg.genericSmsUrl) {
+            document.getElementById('genericSmsUrlInput').value = cfg.genericSmsUrl;
+          }
+          if (cfg.notifyLkUserId) {
+            document.getElementById('notifyLkUserIdInput').value = cfg.notifyLkUserId;
+          }
+          if (cfg.hasNotifyLk) {
+            document.getElementById('notifyLkApiKeyInput').placeholder = '•••••••••••• (Configured)';
+          }
+          if (document.getElementById('smsSenderIdInput')) {
+            document.getElementById('smsSenderIdInput').value = cfg.senderId || 'NotifyDEMO';
+          }
+          loadSmsLogs();
+        }
+      } catch (e) {
+        badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30';
+        badge.textContent = '🔴 Offline / Error';
+      }
+    }
+
+    async function saveFirebaseConfig(e) {
+      if (e) e.preventDefault();
+      const alertBox = document.getElementById('fbSaveAlert');
+      const saveBtn = document.getElementById('fbSaveBtn');
+      alertBox.classList.add('hidden');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+
+      const provider = document.getElementById('fbProviderSelect').value;
+      const enabled = document.getElementById('fbEnabledSelect').value === 'true';
+      const genericSmsUrl = document.getElementById('genericSmsUrlInput') ? document.getElementById('genericSmsUrlInput').value.trim() : '';
+      const notifyLkUserId = document.getElementById('notifyLkUserIdInput') ? document.getElementById('notifyLkUserIdInput').value.trim() : '';
+      const notifyLkApiKey = document.getElementById('notifyLkApiKeyInput') ? document.getElementById('notifyLkApiKeyInput').value.trim() : '';
+      const senderId = document.getElementById('smsSenderIdInput') ? document.getElementById('smsSenderIdInput').value.trim() : '';
+
+      try {
+        const json = await authFetch(`${API_BASE}/admin/firebase-config`, {
+          method: 'POST',
+          body: JSON.stringify({
+            enabled,
+            smsGatewayProvider: provider,
+            senderId: senderId || undefined,
+            genericSmsUrl: genericSmsUrl || undefined,
+            notifyLkUserId: notifyLkUserId || undefined,
+            notifyLkApiKey: notifyLkApiKey || undefined,
+          })
+        });
+
+        if (json.success) {
+          alertBox.className = 'p-3 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 block';
+          alertBox.textContent = '✅ ' + (json.message || 'SMS configuration updated successfully!');
+          await loadFirebaseConfig();
+        } else {
+          alertBox.className = 'p-3 rounded-xl text-xs font-bold bg-red-50 text-red-700 border border-red-200 block';
+          alertBox.textContent = '❌ ' + (json.message || 'Failed to update SMS configuration');
+        }
+      } catch (err) {
+        alertBox.className = 'p-3 rounded-xl text-xs font-bold bg-red-50 text-red-700 border border-red-200 block';
+        alertBox.textContent = '❌ ' + err.message;
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 Save SMS Gateway Settings';
+      }
+    }
+
+    async function executeTestSms() {
+      const phoneInput = document.getElementById('testSmsPhoneInput');
+      const phone = phoneInput ? phoneInput.value.trim() : '';
+      const resultBox = document.getElementById('testSmsResult');
+      const testBtn = document.getElementById('testSmsBtn');
+
+      if (!phone) {
+        alert('Please enter a test phone number with country code (e.g. +94771234567)');
+        return;
+      }
+
+      resultBox.classList.add('hidden');
+      testBtn.disabled = true;
+      testBtn.innerHTML = '<span>⏳</span> Sending SMS...';
+
+      try {
+        const json = await authFetch(`${API_BASE}/admin/test-sms`, {
+          method: 'POST',
+          body: JSON.stringify({ phone })
+        });
+        resultBox.classList.remove('hidden');
+        if (json.success) {
+          resultBox.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 block leading-relaxed';
+          resultBox.innerHTML = `<strong>✅ Success!</strong> Dispatched via <em>${json.data.provider}</em>.<br>Test OTP: <strong class="text-emerald-950 font-mono text-sm">${json.data.testOtp}</strong>`;
+        } else {
+          resultBox.className = 'p-3 rounded-xl text-xs font-semibold bg-red-50 text-red-800 border border-red-200 block leading-relaxed';
+          resultBox.innerHTML = `<strong>❌ SMS Failed:</strong> ${json.message || 'Error sending SMS'}`;
+        }
+      } catch (err) {
+        resultBox.className = 'p-3 rounded-xl text-xs font-semibold bg-red-50 text-red-800 border border-red-200 block';
+        resultBox.textContent = 'Error: ' + err.message;
+        resultBox.classList.remove('hidden');
+      } finally {
+        testBtn.disabled = false;
+        testBtn.innerHTML = '<span>🚀</span> Dispatch Test SMS';
+      }
+    }
+    async function loadSmsLogs() {
+      const tbody = document.getElementById('smsLogsTableBody');
+      if (!tbody) return;
+      try {
+        const json = await authFetch(`${API_BASE}/admin/sms-logs`);
+        if (json.success && json.data) {
+          const logs = json.data;
+          if (logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-slate-400">No SMS dispatched yet. Try sending a test SMS or registering from the mobile app.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = logs.map(l => {
+            const timeStr = new Date(l.timestamp).toLocaleTimeString();
+            let statusPill = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">${l.status}</span>`;
+            if (l.status === 'sent') {
+              statusPill = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">✅ Dispatched</span>`;
+            } else if (l.status === 'failed') {
+              statusPill = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">❌ Failed</span>`;
+            } else if (l.status === 'mock') {
+              statusPill = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">⚡ Mock/Dev</span>`;
+            }
+            return `
+              <tr class="hover:bg-slate-50/70 transition-colors">
+                <td class="py-2.5 px-3 text-slate-500 font-mono text-[11px]">${timeStr}</td>
+                <td class="py-2.5 px-3 font-semibold text-slate-900">${l.phone}</td>
+                <td class="py-2.5 px-3 font-mono font-bold text-coral text-sm tracking-wider">${l.code}</td>
+                <td class="py-2.5 px-3 uppercase text-[10px] font-bold text-slate-500">${l.provider}</td>
+                <td class="py-2.5 px-3">${statusPill}</td>
+                <td class="py-2.5 px-3 text-[11px] text-slate-600 max-w-xs truncate" title="${l.message}">${l.message}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-red-500">Failed to load SMS logs: ${e.message}</td></tr>`;
+      }
+    }
+  </script>
+</body>
+</html>

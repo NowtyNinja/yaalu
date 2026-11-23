@@ -1,0 +1,6 @@
+{
+  "enabled": true,
+  "smsGatewayProvider": "notify_lk",
+  "senderId": "adumkade.lk",
+  "notifyLkUserId": "12734"
+}
