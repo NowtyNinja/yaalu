@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account & Data Deletion - Yaalu Dating</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090A0F;
+      --card-bg: #12141D;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #FF1A53;
+      --primary-gradient: linear-gradient(135deg, #FF1A53 0%, #FF4D79 100%);
+      --text: #F1F5F9;
+      --text-muted: #94A3B8;
+      --heading: #FFFFFF;
+      --danger: #EF4444;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding-bottom: 60px;
+    }
+    header {
+      border-bottom: 1px solid var(--card-border);
+      background: rgba(9, 10, 15, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+    .brand-logo {
+      font-size: 26px;
+      font-weight: 900;
+      font-style: italic;
+      letter-spacing: -0.5px;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+      background: rgba(255, 26, 83, 0.12);
+      border: 1px solid rgba(255, 26, 83, 0.25);
+      padding: 3px 8px;
+      border-radius: 12px;
+      letter-spacing: 1px;
+    }
+    nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-left: 18px;
+      transition: color 0.2s;
+    }
+    nav a:hover, nav a.active {
+      color: var(--text);
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+    .hero {
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .hero h1 {
+      font-size: 34px;
+      font-weight: 800;
+      color: var(--heading);
+      letter-spacing: -0.8px;
+      margin-bottom: 10px;
+    }
+    .last-updated {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    .section-card h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--heading);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-card p {
+      color: var(--text-muted);
+      font-size: 14.5px;
+      margin-bottom: 14px;
+    }
+    .step-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .step-box strong {
+      color: #FFFFFF;
+      display: block;
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+    .step-box p {
+      margin-bottom: 0;
+      font-size: 14px;
+    }
+    .data-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    @media (max-width: 600px) {
+      .data-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .data-col {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .data-col h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .data-col.deleted h3 {
+      color: #F87171;
+    }
+    .data-col.retained h3 {
+      color: #FBBF24;
+    }
+    .data-col ul {
+      margin-left: 18px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+    }
+    .data-col li {
+      margin-bottom: 6px;
+    }
+    .contact-form-box {
+      background: rgba(255, 26, 83, 0.06);
+      border: 1px solid rgba(255, 26, 83, 0.2);
+      border-radius: 18px;
+      padding: 24px;
+      text-align: center;
+      margin-top: 16px;
+    }
+    .btn-action {
+      display: inline-block;
+      background: var(--primary-gradient);
+      color: #FFFFFF;
+      text-decoration: none;
+      padding: 12px 28px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 14px;
+      margin-top: 12px;
+      box-shadow: 0 4px 16px rgba(255, 26, 83, 0.3);
+    }
+    footer {
+      max-width: 900px;
+      margin: 40px auto 0 auto;
+      padding-top: 24px;
+      border-top: 1px solid var(--card-border);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    footer a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <a href="/" class="brand">
+        <span class="brand-logo">Yaalu</span>
+        <span class="brand-tag">DATING</span>
+      </a>
+      <nav>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms & EULA</a>
+        <a href="/delete-account" class="active">Delete Account</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="hero">
+      <h1>Account & Data Deletion Request</h1>
+      <div class="last-updated">In compliance with Google Play Store & Apple App Store Data Safety Policies</div>
+    </div>
+
+    <div class="section-card">
+      <h2>1. Overview</h2>
+      <p>
+        At Yaalu, we believe you should always maintain full sovereignty over your personal data. You have the unconditional right to request the permanent deletion of your Yaalu account and all associated personal data at any time.
+      </p>
+      <p>
+        Below, you will find instructions for deleting your account directly inside the app, or submitting a remote deletion request if you have already uninstalled the application.
+      </p>
+    </div>
+
+    <div class="section-card">
+      <h2>2. Method A: Instant In-App Deletion (Recommended)</h2>
+      <p>If you have the Yaalu app installed on your smartphone, you can instantly erase your account within seconds:</p>
+      
+      <div class="step-box">
+        <strong>Step 1: Open Settings</strong>
+        <p>Launch the Yaalu app and tap on your <strong>Profile tab</strong> at the bottom right, then tap the <strong>Settings (Gear) icon</strong>.</p>
+      </div>
+
+      <div class="step-box">
+        <strong>Step 2: Access Account Settings</strong>
+        <p>Scroll down to the <strong>Account Management</strong> section and tap on <strong>Delete Account</strong>.</p>
+      </div>
+
+      <div class="step-box">
+        <strong>Step 3: Confirm Deletion</strong>
+        <p>Confirm your action. Your session will be immediately invalidated, your profile removed from discovery, and your data scheduled for permanent erasure.</p>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h2>3. Method B: Remote Web Deletion Request</h2>
+      <p>
+        If you have uninstalled the app, lost access to your device, or cannot log in, you can request manual deletion by sending an email to our Data Privacy & Safety Team:
+      </p>
+
+      <div class="contact-form-box">
+        <h3 style="color: #FFFFFF; font-size: 17px; margin-bottom: 8px;">Submit Deletion Request via Email</h3>
+        <p style="font-size: 14px; color: var(--text-muted); max-width: 600px; margin: 0 auto 12px auto;">
+          Send an email from your contact address or include your <strong>registered phone number</strong> (with country code, e.g. <span style="font-family: monospace; color: #FFFFFF;">+9471XXXXXXX</span>) so we can locate and purge your account records.
+        </p>
+        <a href="mailto:support@yaalu.lk?subject=Yaalu%20Account%20and%20Data%20Deletion%20Request&body=Hello%20Yaalu%20Support%2C%0A%0APlease%20permanently%20delete%20my%20Yaalu%20account%20and%20all%20associated%20data.%0A%0AMy%20Registered%20Phone%20Number%3A%20%2B94%0AMy%20Display%20Name%3A%20%0A%0AThank%20you." class="btn-action">
+          ✉️ Email support@yaalu.lk to Delete Account
+        </a>
+      </div>
+      <p style="margin-top: 14px; font-size: 13.5px;">
+        <em>Note: Remote requests are verified and processed within <strong>24 to 48 business hours</strong>. You will receive a confirmation once deletion is complete.</em>
+      </p>
+    </div>
+
+    <div class="section-card">
+      <h2>4. Data Deletion Scope & Retention Details</h2>
+      <p>When your account is deleted, here is what happens to your data:</p>
+
+      <div class="data-grid">
+        <div class="data-col deleted">
+          <h3>🗑️ Permanently Deleted Immediately</h3>
+          <ul>
+            <li>Profile details (Name, bio, gender, age, interests)</li>
+            <li>All uploaded profile photos and selfie verification pictures</li>
+            <li>All recorded voice notes and audio clips</li>
+            <li>All direct messages, matches, likes, and swipe history</li>
+            <li>GPS location history and device tokens</li>
+            <li>Phone number records from active user pools</li>
+          </ul>
+        </div>
+
+        <div class="data-col retained">
+          <h3>⏳ Limited Retention (When Applicable)</h3>
+          <ul>
+            <li>Financial transaction records (if coins or VIP passes were purchased via Google Play / Apple) are retained up to statutory financial auditing requirements (e.g., tax compliance).</li>
+            <li>Anonymized abuse & ban prevention hashes (e.g. SHA-256 hash of a banned phone number) may be retained strictly to prevent banned predatory users from returning.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h2>5. Questions or Further Assistance</h2>
+      <p>
+        If you have questions regarding data privacy, your rights, or this deletion procedure, please reach out to:
+      </p>
+      <p>
+        <strong>Yaalu Data Privacy Officer:</strong> <a href="mailto:support@yaalu.lk" style="color: var(--primary);">support@yaalu.lk</a><br>
+        <strong>Operating Region:</strong> Sri Lanka & Global
+      </p>
+    </div>
+
+    <footer>
+      &copy; 2026 Yaalu Dating. All rights reserved. &bull; 
+      <a href="/privacy">Privacy Policy</a> &bull; 
+      <a href="/terms">Terms of Service</a>
+    </footer>
+  </main>
+
+</body>
+</html>

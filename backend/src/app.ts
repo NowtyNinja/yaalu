@@ -135,10 +135,34 @@ export function createApp(): Application {
       <div class="alert-title">⚠️ IMPORTANT STEP</div>
       Please <strong>UNINSTALL</strong> the previous Yaalu app from your phone first so the new 32-bit package installs cleanly without conflicts.
     </div>
+
+    <div style="margin-top: 24px; font-size: 12px; color: rgba(255,255,255,0.4);">
+      <a href="/privacy" style="color: rgba(255,255,255,0.6); text-decoration: none; margin-right: 10px;">Privacy Policy</a> &bull;
+      <a href="/terms" style="color: rgba(255,255,255,0.6); text-decoration: none; margin: 0 10px;">Terms of Service</a> &bull;
+      <a href="/delete-account" style="color: rgba(255,255,255,0.6); text-decoration: none; margin-left: 10px;">Account Deletion</a>
+    </div>
   </div>
 </body>
 </html>`);
   });
+
+  // Legal & App Store Compliance Web Pages (Privacy Policy, Terms of Service / EULA, Account Deletion)
+  const publicDir = path.join(__dirname, '../public');
+
+  app.get('/privacy', (_req: Request, res: Response) => {
+    res.sendFile(path.join(publicDir, 'privacy.html'));
+  });
+
+  app.get('/terms', (_req: Request, res: Response) => {
+    res.sendFile(path.join(publicDir, 'terms.html'));
+  });
+
+  app.get(['/delete-account', '/delete-data'], (_req: Request, res: Response) => {
+    res.sendFile(path.join(publicDir, 'delete-account.html'));
+  });
+
+  // Serve static assets from public directory
+  app.use(express.static(publicDir));
 
   // Admin Dashboard Web Portal - remove restrictive CSP for web admin portal
   app.use('/admin', (_req: Request, res: Response, next) => {
