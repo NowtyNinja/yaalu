@@ -4,6 +4,7 @@ import { createApp } from './app';
 import { config } from './config';
 import { initializeSockets } from './sockets/chatSocket';
 import { logger } from './utils/logger';
+import { KeepAliveService } from './services/keepAliveService';
 
 const app = createApp();
 const server = http.createServer(app);
@@ -28,11 +29,15 @@ server.listen(config.port, '0.0.0.0', () => {
   logger.info(`🔒 Security Engine: Zero-Trust Active (Anti-SQLi, Anti-XSS, RateLimited)`);
   logger.info(`📡 API Base: http://localhost:${config.port}${config.apiPrefix}`);
   logger.info(`=======================================================`);
+
+  // Start 24/7 Keep-Alive heartbeat to prevent Render idle sleep
+  KeepAliveService.start();
 });
 
 // Handle graceful shutdown
 const shutdown = () => {
   logger.info('Shutting down server gracefully...');
+  KeepAliveService.stop();
   server.close(() => {
     logger.info('HTTP server closed.');
     process.exit(0);
