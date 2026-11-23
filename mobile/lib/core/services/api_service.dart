@@ -90,17 +90,21 @@ class ApiService {
       return _handleResponse(response);
     } catch (e) {
       if (e is SocketException || e is TimeoutException || e is http.ClientException) {
-        // Fallback host if initial host fails
-        ApiEndpoints.switchHost();
-        final fallbackUrl = url.contains('127.0.0.1:5000')
-            ? url.replaceAll('127.0.0.1:5000', '192.168.43.199:5000')
-            : url.replaceAll('192.168.43.199:5000', '127.0.0.1:5000');
-        final fallbackReq = http.MultipartRequest('POST', Uri.parse(fallbackUrl));
-        if (token != null) fallbackReq.headers['Authorization'] = 'Bearer $token';
-        fallbackReq.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
-        final fallbackStream = await fallbackReq.send().timeout(const Duration(seconds: 30));
-        final fallbackRes = await http.Response.fromStream(fallbackStream);
-        return _handleResponse(fallbackRes);
+        if (!ApiEndpoints.isHttps) {
+          // Fallback host if initial host fails (local dev only)
+          ApiEndpoints.switchHost();
+          final fallbackUrl = url.contains('127.0.0.1:5000')
+              ? url.replaceAll('127.0.0.1:5000', '192.168.43.199:5000')
+              : url.replaceAll('192.168.43.199:5000', '127.0.0.1:5000');
+          final fallbackReq = http.MultipartRequest('POST', Uri.parse(fallbackUrl));
+          if (token != null) fallbackReq.headers['Authorization'] = 'Bearer $token';
+          fallbackReq.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
+          final fallbackStream = await fallbackReq.send().timeout(const Duration(seconds: 30));
+          final fallbackRes = await http.Response.fromStream(fallbackStream);
+          return _handleResponse(fallbackRes);
+        } else {
+          throw Exception('Unable to reach server. Please check your internet connection.');
+        }
       }
       rethrow;
     }
@@ -116,17 +120,21 @@ class ApiService {
       return _handleResponse(response);
     } catch (e) {
       if (e is SocketException || e is TimeoutException || e is http.ClientException) {
-        // Try fallback host
-        ApiEndpoints.switchHost();
-        final updatedUrl = originalUrl.contains('127.0.0.1:5000')
-            ? originalUrl.replaceAll('127.0.0.1:5000', '192.168.43.199:5000')
-            : originalUrl.replaceAll('192.168.43.199:5000', '127.0.0.1:5000');
+        if (!ApiEndpoints.isHttps) {
+          // Try fallback host (local dev only)
+          ApiEndpoints.switchHost();
+          final updatedUrl = originalUrl.contains('127.0.0.1:5000')
+              ? originalUrl.replaceAll('127.0.0.1:5000', '192.168.43.199:5000')
+              : originalUrl.replaceAll('192.168.43.199:5000', '127.0.0.1:5000');
 
-        try {
-          final fallbackResponse = await requestFn(updatedUrl);
-          return _handleResponse(fallbackResponse);
-        } catch (_) {
-          throw Exception('Connection failed. Please check network / adb reverse.');
+          try {
+            final fallbackResponse = await requestFn(updatedUrl);
+            return _handleResponse(fallbackResponse);
+          } catch (_) {
+            throw Exception('Connection failed. Please check network / adb reverse.');
+          }
+        } else {
+          throw Exception('Connection error. Please check your internet connection.');
         }
       }
       rethrow;

@@ -1,10 +1,13 @@
 class ApiEndpoints {
-  // Primary (Wi-Fi LAN IP) and Fallback (USB ADB reverse)
-  static String activeHost = '192.168.43.199:5000';
-  static const String fallbackHost = '127.0.0.1:5000';
+  // Live Production Server (Render Cloud with SSL/HTTPS)
+  static String activeHost = 'yaalu-backend.onrender.com';
+  static const String fallbackHost = 'yaalu-backend.onrender.com';
 
-  static String get baseUrl => 'http://$activeHost/api/v1';
-  static String get socketUrl => 'http://$activeHost';
+  static bool get isHttps => !activeHost.contains('192.168.') && !activeHost.contains('localhost') && !activeHost.contains('127.0.0.1');
+  static String get scheme => isHttps ? 'https' : 'http';
+
+  static String get baseUrl => '$scheme://$activeHost/api/v1';
+  static String get socketUrl => '$scheme://$activeHost';
 
   // Auth
   static String get requestOtp => '$baseUrl/auth/request-otp';
@@ -79,12 +82,12 @@ class ApiEndpoints {
         .replaceAll('&amp;', '&');
 
     if (clean.startsWith('/uploads/')) {
-      return 'http://$activeHost$clean';
+      return '$scheme://$activeHost$clean';
     }
 
     if (clean.contains('/uploads/')) {
       final sub = clean.substring(clean.indexOf('/uploads/'));
-      return 'http://$activeHost$sub';
+      return '$scheme://$activeHost$sub';
     }
 
     return clean;
