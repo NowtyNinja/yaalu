@@ -27,11 +27,6 @@ android {
         targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        ndk {
-            abiFilters.clear()
-            abiFilters.add("armeabi-v7a")
-            abiFilters.add("arm64-v8a")
-        }
     }
 
     packaging {
@@ -39,6 +34,7 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
         jniLibs {
+            useLegacyPackaging = true
             excludes += "**/libVkLayer_khronos_validation.so"
             keepDebugSymbols += "**/*.so"
         }
