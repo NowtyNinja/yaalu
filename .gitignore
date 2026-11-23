@@ -49,6 +49,7 @@ mobile/android/key.properties
 *.jks
 *.keystore
 *.apk
+*.aab
 
 # iOS
 mobile/ios/.generated/

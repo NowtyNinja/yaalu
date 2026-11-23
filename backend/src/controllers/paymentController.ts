@@ -15,7 +15,8 @@ export const BANK_DETAILS = {
   accountNumber: '011013666444120',
   bankName: 'Seylan Bank',
   branch: 'Gampaha',
-  instructions: 'Transfer the subscription fee via Online Banking, CDM, or Bank Counter. Use your phone number as the reference and submit the slip.',
+  whatsappSupport: '+94786799544',
+  instructions: 'Transfer the subscription fee via Online Banking, CDM, or Bank Counter. Use your phone number as reference and send the slip to WhatsApp +94 78 679 9544.',
 };
 
 // VIP Tier Pricing Table
@@ -172,7 +173,7 @@ export class PaymentController {
     sendSuccess(
       res,
       transaction,
-      'Bank transfer registered and VIP unlocked! Please ensure slip is sent via WhatsApp.'
+      'Bank transfer registered! Please ensure slip is sent to WhatsApp +94 78 679 9544.'
     );
   }
 }

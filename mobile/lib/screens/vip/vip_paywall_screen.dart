@@ -61,7 +61,7 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
       'Here is my bank deposit slip / transfer screenshot:'
     );
 
-    final waUrl = 'https://wa.me/94779876543?text=$message';
+    final waUrl = 'https://wa.me/94786799544?text=$message';
     Clipboard.setData(ClipboardData(text: 'Reference: $refCode | $amount'));
 
     try {
@@ -71,7 +71,7 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Opening WhatsApp Support (+94 77 987 6543)...'),
+          content: Text('Opening WhatsApp Support (+94 78 679 9544)...'),
           backgroundColor: Color(0xFF25D366),
         ),
       );
