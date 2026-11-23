@@ -7,6 +7,7 @@ import '../../core/constants/api_endpoints.dart';
 import 'edit_profile_screen.dart';
 import 'passport_screen.dart';
 import 'settings_screen.dart';
+import '../onboarding/ai_liveness_check_screen.dart';
 import '../vip/vip_paywall_screen.dart';
 import '../splash_screen.dart';
 
@@ -403,6 +404,31 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Feature Options
+            _buildProfileTile(
+              icon: Icons.verified_user_rounded,
+              title: 'AI Face Verification',
+              subtitle: profile?.isVerified == true
+                  ? 'Your profile is verified with the Yaalu Blue Badge ✨'
+                  : 'Capture live selfie with camera to get the verified blue tick',
+              trailing: profile?.isVerified == true ? 'VERIFIED' : 'VERIFY',
+              isVipOnly: false,
+              onTap: () async {
+                if (profile?.isVerified == true) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Your account is already verified with the Yaalu Blue Badge! ✨'),
+                      backgroundColor: Color(0xFF00B0FF),
+                    ),
+                  );
+                  return;
+                }
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AiLivenessCheckScreen()),
+                );
+                await auth.checkAuthStatus();
+              },
+            ),
+
             _buildProfileTile(
               icon: Icons.flight_takeoff_rounded,
               title: 'Yaalu Passport (Worldwide GPS)',

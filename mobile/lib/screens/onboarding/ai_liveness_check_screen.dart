@@ -149,10 +149,15 @@ class _AiLivenessCheckScreenState extends State<AiLivenessCheckScreen>
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
-                    (route) => false,
-                  );
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop(true);
+                  } else {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+                      (route) => false,
+                    );
+                  }
                 },
                 child: const Text('Start Exploring Matches 🚀'),
               ),
@@ -164,10 +169,14 @@ class _AiLivenessCheckScreenState extends State<AiLivenessCheckScreen>
   }
 
   void _skipForNow() {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
-      (route) => false,
-    );
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        (route) => false,
+      );
+    }
   }
 
   @override

@@ -29,6 +29,7 @@ class MainActivity: FlutterActivity() {
     private val REQUEST_GALLERY = 1001
     private val REQUEST_CAMERA = 1002
     private val REQUEST_AUDIO_PERM = 2002
+    private val REQUEST_CAMERA_PERM = 2003
 
     private var pendingPickerResult: MethodChannel.Result? = null
     private var pendingAudioResult: MethodChannel.Result? = null
@@ -97,12 +98,10 @@ class MainActivity: FlutterActivity() {
                 }
                 "takePhotoWithCamera" -> {
                     pendingPickerResult = result
-                    try {
-                        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-                        startActivityForResult(intent, REQUEST_CAMERA)
-                    } catch (e: Exception) {
-                        pendingPickerResult = null
-                        result.error("CAMERA_ERROR", e.message, null)
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), REQUEST_CAMERA_PERM)
+                    } else {
+                        launchCamera()
                     }
                 }
                 else -> result.notImplemented()
@@ -248,12 +247,30 @@ class MainActivity: FlutterActivity() {
         }
     }
 
+    private fun launchCamera() {
+        try {
+            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            startActivityForResult(intent, REQUEST_CAMERA)
+        } catch (e: Exception) {
+            pendingPickerResult?.error("CAMERA_ERROR", e.message, null)
+            pendingPickerResult = null
+        }
+    }
+
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_AUDIO_PERM) {
             val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
             pendingAudioResult?.success(granted)
             pendingAudioResult = null
+        } else if (requestCode == REQUEST_CAMERA_PERM) {
+            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            if (granted) {
+                launchCamera()
+            } else {
+                pendingPickerResult?.error("PERMISSION_DENIED", "Camera permission is required to capture live photo", null)
+                pendingPickerResult = null
+            }
         }
     }
 
@@ -280,13 +297,22 @@ class MainActivity: FlutterActivity() {
             }
             pendingPickerResult = null
         } else if (requestCode == REQUEST_CAMERA) {
-            if (resultCode == Activity.RESULT_OK && data != null) {
+            if (resultCode == Activity.RESULT_OK) {
                 try {
-                    val bitmap = data.extras?.get("data") as? Bitmap
+                    val bitmap = data?.extras?.get("data") as? Bitmap
                     if (bitmap != null) {
                         val cacheFile = File(cacheDir, "camera_photo_${UUID.randomUUID()}.jpg")
                         val outputStream = FileOutputStream(cacheFile)
                         bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+                        outputStream.close()
+                        pendingPickerResult?.success(cacheFile.absolutePath)
+                    } else if (data?.data != null) {
+                        val uri = data.data!!
+                        val inputStream = contentResolver.openInputStream(uri)
+                        val cacheFile = File(cacheDir, "camera_photo_${UUID.randomUUID()}.jpg")
+                        val outputStream = FileOutputStream(cacheFile)
+                        inputStream?.copyTo(outputStream)
+                        inputStream?.close()
                         outputStream.close()
                         pendingPickerResult?.success(cacheFile.absolutePath)
                     } else {
