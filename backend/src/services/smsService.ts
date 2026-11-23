@@ -2,6 +2,15 @@ import path from 'path';
 import fs from 'fs';
 import { logger } from '../utils/logger';
 
+function normalizeSenderId(raw?: string): string {
+  const trimmed = (raw || '').trim();
+  const lower = trimmed.toLowerCase();
+  if (lower === 'sell4n.lk') return 'Sell4n.lk';
+  if (lower === 'adumkade.lk') return 'AdumKade.lk';
+  if (lower === 'notifydemo') return 'NotifyDEMO';
+  return trimmed || 'Sell4n.lk';
+}
+
 export interface SmsConfigData {
   enabled: boolean;
   smsGatewayProvider: 'notify_lk' | 'mock' | 'twilio' | 'generic';
@@ -69,7 +78,7 @@ class SmsService {
       this.configData = {
         enabled,
         smsGatewayProvider,
-        senderId: savedConfig.senderId || process.env.SMS_SENDER_ID || 'NotifyDEMO',
+        senderId: normalizeSenderId(savedConfig.senderId || process.env.SMS_SENDER_ID || 'Sell4n.lk'),
         genericSmsUrl: savedConfig.genericSmsUrl || process.env.GENERIC_SMS_URL || '',
         notifyLkUserId: savedConfig.notifyLkUserId || process.env.NOTIFY_LK_USER_ID || '',
         notifyLkApiKey: savedConfig.notifyLkApiKey || process.env.NOTIFY_LK_API_KEY || '',
@@ -179,18 +188,35 @@ class SmsService {
     if (provider === 'notify_lk' && this.configData.notifyLkUserId && this.configData.notifyLkApiKey) {
       try {
         const cleanTo = formattedPhone.replace('+', '').replace(/^0/, '94');
-        const url = `https://app.notify.lk/api/v1/send?user_id=${encodeURIComponent(
-          this.configData.notifyLkUserId
-        )}&api_key=${encodeURIComponent(
-          this.configData.notifyLkApiKey
-        )}&message=${encodeURIComponent(message)}&to=${cleanTo}&sender_id=${encodeURIComponent(
-          senderId
-        )}`;
+        const primarySender = normalizeSenderId(this.configData.senderId || 'Sell4n.lk');
 
-        const resp = await fetch(url, { method: 'GET' });
-        const data: any = await resp.json().catch(() => ({}));
+        const dispatchWithSender = async (sid: string) => {
+          const url = `https://app.notify.lk/api/v1/send?user_id=${encodeURIComponent(
+            this.configData.notifyLkUserId!
+          )}&api_key=${encodeURIComponent(
+            this.configData.notifyLkApiKey!
+          )}&message=${encodeURIComponent(message)}&to=${cleanTo}&sender_id=${encodeURIComponent(sid)}`;
+          const resp = await fetch(url, { method: 'GET' });
+          const data: any = await resp.json().catch(() => ({}));
+          const isOk = resp.ok && (data.status === 'success' || data.code === 200 || data.data === 'Sent');
+          return { isOk, data, sid };
+        };
 
-        const isOk = resp.ok && (data.status === 'success' || data.code === 200);
+        // Attempt 1: primary sender
+        let { isOk, data, sid } = await dispatchWithSender(primarySender);
+
+        // Auto-Fallback: If rejected, retry with alternate verified sender ID
+        if (!isOk) {
+          const fallbackSender = primarySender.toLowerCase() === 'sell4n.lk' ? 'AdumKade.lk' : 'Sell4n.lk';
+          logger.warn(`Notify.lk primary sender [${primarySender}] failed: ${JSON.stringify(data)}. Retrying with [${fallbackSender}]...`);
+          const fallbackRes = await dispatchWithSender(fallbackSender);
+          if (fallbackRes.isOk) {
+            isOk = true;
+            data = fallbackRes.data;
+            sid = fallbackSender;
+          }
+        }
+
         this.logSms({
           phone: formattedPhone,
           code,
@@ -210,7 +236,7 @@ class SmsService {
 
         return {
           success: isOk,
-          message: isOk ? 'SMS sent via Notify.lk' : errMsg,
+          message: isOk ? `SMS sent via Notify.lk (${sid})` : errMsg,
           provider: 'notify_lk',
           details: data,
         };

@@ -57,19 +57,25 @@ export class AuthController {
     const fbStatus = smsService.getStatus();
     const isLiveSms = fbStatus.enabled && fbStatus.smsGatewayProvider !== 'mock';
 
-    // Random 6 digits in live mode, or fixed 777777 in mock/dev mode
-    const code = isLiveSms
+    const isTestNumber = phone === '+94770000000' || phone === '+94711111111';
+
+    // Fixed 123456 for Google Play reviewers / test accounts, random 6 digits for live users
+    const code = isTestNumber
+      ? '123456'
+      : isLiveSms
       ? Math.floor(100000 + Math.random() * 900000).toString()
       : '777777';
 
-    const expiresAt = Date.now() + 3 * 60 * 1000; // 3 minutes validity
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
 
     otpStore.set(phone, { code, expiresAt, attempts: 0 });
 
-    logger.info(`OTP generated for phone: [${phone}] (Code: ${isLiveSms ? '***' : code})`);
+    logger.info(`OTP generated for phone: [${phone}] (Code: ${isTestNumber ? 'TEST_123456' : isLiveSms ? '***' : code})`);
 
-    // Dispatch SMS via Notify.lk / Gateway
-    const smsDispatch = await smsService.sendSmsOtp(phone, code);
+    // Dispatch SMS via Notify.lk / Gateway (skip SMS for test numbers)
+    const smsDispatch = isTestNumber
+      ? { success: true, message: 'Google Play review test account bypass (Code: 123456)', provider: 'test_bypass' }
+      : await smsService.sendSmsOtp(phone, code);
 
     // Provide mockOtpHint if not live OR if live dispatch failed, so user is never locked out
     const provideHint = !isLiveSms || !smsDispatch.success;
