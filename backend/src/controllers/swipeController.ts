@@ -36,8 +36,7 @@ export class SwipeController {
       res,
       {
         profiles,
-        remainingSwipesToday:
-          user.subscriptionTier === 'free' ? Math.max(0, 15 - user.dailySwipeCount) : 'unlimited',
+        remainingSwipesToday: 'unlimited',
         superLikesRemaining: user.superLikesRemaining,
         isVip: user.subscriptionTier !== 'free',
       },
@@ -70,10 +69,7 @@ export class SwipeController {
           isMatch: result.isMatch,
           match: result.match,
           matchedProfile,
-          remainingSwipesToday:
-            req.user!.subscriptionTier === 'free'
-              ? Math.max(0, 15 - req.user!.dailySwipeCount)
-              : 'unlimited',
+          remainingSwipesToday: 'unlimited',
         },
         result.isMatch ? "It's a Match! 🎉" : 'Swipe recorded successfully'
       );
@@ -133,7 +129,7 @@ export class SwipeController {
       if (err.message === 'VIP_REQUIRED_SEE_LIKES') {
         sendError(
           res,
-          'Seeing who liked you requires a Yaalu VIP subscription.',
+          'Seeing who liked you requires a Yaalu VIP subscription (Free for female members).',
           403,
           'VIP_REQUIRED'
         );

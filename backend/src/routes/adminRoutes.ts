@@ -20,6 +20,7 @@ router.get('/users', AdminController.getUsers);
 router.patch('/users/:userId/verify', AdminController.toggleVerify);
 router.patch('/users/:userId/ban', AdminController.toggleBan);
 router.patch('/users/:userId/vip', AdminController.grantVip);
+router.post('/purge-demo', AdminController.purgeDemoData);
 
 // Moderation & UGC Safety Reports
 router.get('/reports', AdminController.getReports);

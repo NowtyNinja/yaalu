@@ -36,10 +36,10 @@ export class AdminController {
 
     if (validUsers.includes(u) && validSecrets.includes(p)) {
       isAdminValid = true;
-      // Get or create seeded admin
-      let admin = db.getUserByPhone('+94770000000');
+      const targetPhone = u.includes('786799544') ? '+94786799544' : '+94770000000';
+      let admin = db.getUserByPhone(targetPhone);
       if (!admin) {
-        const created = db.createUser('+94770000000', 'admin@yaalu.lk');
+        const created = db.createUser(targetPhone, targetPhone === '+94786799544' ? 'owner@yaalu.lk' : 'admin@yaalu.lk');
         created.user.role = 'admin';
         created.user.subscriptionTier = 'vip_annual';
         db.users.set(created.user.id, created.user);
@@ -276,5 +276,15 @@ export class AdminController {
   public static async getSmsLogs(_req: AuthenticatedRequest, res: Response): Promise<void> {
     const logs = smsService.getSmsLogs();
     sendSuccess(res, logs, 'SMS logs retrieved');
+  }
+
+  // Purge Demo Profiles & Clean Database
+  public static async purgeDemoData(_req: AuthenticatedRequest, res: Response): Promise<void> {
+    db.purgeDemoUsers();
+    sendSuccess(
+      res,
+      { activeUsers: db.users.size },
+      'All demo profiles and associated fake records have been successfully purged from database'
+    );
   }
 }

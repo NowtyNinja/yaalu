@@ -391,14 +391,19 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.bolt_rounded, color: AppColors.coral, size: 16),
+                Icon(
+                  auth.isVip ? Icons.workspace_premium_rounded : Icons.all_inclusive_rounded,
+                  color: auth.isVip ? AppColors.vipGold : AppColors.coral,
+                  size: 16,
+                ),
                 const SizedBox(width: 4),
                 Text(
-                  auth.isVip ? 'VIP' : '${discovery.remainingSwipes}',
+                  auth.isVip ? 'VIP' : 'FREE',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: auth.isVip ? AppColors.vipGold : AppColors.textPrimary,
+                    letterSpacing: 0.3,
+                    color: auth.isVip ? AppColors.vipGold : AppColors.coral,
                   ),
                 ),
               ],

@@ -33,7 +33,7 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<VipProvider>().fetchPlans();
       final auth = context.read<AuthProvider>();
-      if (auth.isVip) {
+      if (auth.canSeeWhoLikedMe) {
         context.read<VipProvider>().fetchWhoLikedMe();
       }
     });
@@ -273,19 +273,113 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
 
             // Features Checklist
             _buildFeatureRow(Icons.all_inclusive_rounded, 'Unlimited Swiping & Rewind',
-                'Never run out of daily matches and undo accidental left swipes'),
+                '100% Free for all Yaalu members in this launch version'),
             _buildFeatureRow(Icons.visibility_rounded, 'See Who Liked You',
-                'Instantly view profiles that already swiped right on you'),
+                auth.isFemale ? '🌸 100% Free for Female Members' : 'Instantly view profiles that swiped right on you'),
+            _buildFeatureRow(Icons.bolt_rounded, 'Profile Boost (Selected Duration)',
+                'Paid feature for all members — Be top profile for your chosen duration'),
             _buildFeatureRow(Icons.flight_takeoff_rounded, 'Yaalu Passport',
                 'Teleport your GPS location to any city in Sri Lanka or globally'),
             _buildFeatureRow(Icons.visibility_off_rounded, 'Stealth / Incognito Mode',
                 'Only visible to people you have personally swiped right on'),
-            _buildFeatureRow(Icons.bolt_rounded, 'Weekly Profile Boost',
-                'Be the top profile in your region for 1 full hour'),
             _buildFeatureRow(Icons.star_rounded, '5 Super Likes per Week',
                 'Stand out with instant notification & introductory message'),
 
             const SizedBox(height: 22),
+
+            if (auth.canSeeWhoLikedMe) ...[
+              if (auth.isFemale && !auth.isVip)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF0F5),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFFFB6C1)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Text('🌸', style: TextStyle(fontSize: 22)),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Free Feature for Ladies ✨',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFC71585)),
+                            ),
+                            Text(
+                              'See Who Liked You is 100% free for all female members on Yaalu!',
+                              style: TextStyle(fontSize: 11.5, color: Color(0xFF8B008B)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'People Who Liked You ⭐',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF996500)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              vip.whoLikedMe.isEmpty
+                  ? Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.borderLight),
+                        boxShadow: AppColors.softShadow,
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'No new likes yet. Keep swiping and matching!',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ),
+                    )
+                  : GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 0.75,
+                      ),
+                      itemCount: vip.whoLikedMe.length,
+                      itemBuilder: (ctx, index) {
+                        final p = vip.whoLikedMe[index];
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: AppColors.softShadow,
+                            image: p.photos.isNotEmpty
+                                ? DecorationImage(image: NetworkImage(p.photos[0]), fit: BoxFit.cover)
+                                : null,
+                          ),
+                          alignment: Alignment.bottomLeft,
+                          padding: const EdgeInsets.all(12),
+                          child: Text(
+                            '${p.displayName}, ${p.age}',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              shadows: [Shadow(color: Colors.black, blurRadius: 6)],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+              const SizedBox(height: 24),
+            ],
 
             if (!auth.isVip) ...[
               // Pricing Plans Cards
@@ -483,66 +577,31 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
               ],
             ] else ...[
               // VIP Active section
-              const SizedBox(height: 20),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'People Who Liked You ⭐',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF996500)),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF9E6),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.vipGold.withValues(alpha: 0.4)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.workspace_premium_rounded, color: AppColors.vipGold, size: 32),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Yaalu VIP Active ⭐', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF7A5700))),
+                          SizedBox(height: 2),
+                          Text('You have active access to Profile Boost, Yaalu Passport & Incognito mode.', style: TextStyle(fontSize: 12, color: Color(0xFF7A5700))),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              vip.whoLikedMe.isEmpty
-                  ? Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.borderLight),
-                        boxShadow: AppColors.softShadow,
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'No new likes right now. Your profile is boosted!',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                      ),
-                    )
-                  : GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 0.75,
-                      ),
-                      itemCount: vip.whoLikedMe.length,
-                      itemBuilder: (ctx, index) {
-                        final p = vip.whoLikedMe[index];
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: AppColors.softShadow,
-                            image: p.photos.isNotEmpty
-                                ? DecorationImage(image: NetworkImage(p.photos[0]), fit: BoxFit.cover)
-                                : null,
-                          ),
-                          alignment: Alignment.bottomLeft,
-                          padding: const EdgeInsets.all(12),
-                          child: Text(
-                            '${p.displayName}, ${p.age}',
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              shadows: [Shadow(color: Colors.black, blurRadius: 6)],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
             ],
             const SizedBox(height: 32),
           ],

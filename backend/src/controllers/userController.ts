@@ -169,18 +169,28 @@ export class UserController {
     sendSuccess(res, profile.location, `Location updated to ${city}, ${country}`);
   }
 
-  // Profile Boost (VIP Feature - 1 hour stack boost)
+  // Profile Boost (Paid Feature for Everyone - Selected duration stack boost)
   public static async boostProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
     const user = req.user!;
     if (user.subscriptionTier === 'free') {
-      sendError(res, 'Profile Boost is exclusive to Yaalu VIP subscribers.', 403, 'VIP_REQUIRED');
+      sendError(res, 'Profile Boost is a paid feature exclusive to Yaalu VIP subscribers.', 403, 'VIP_REQUIRED');
       return;
     }
 
-    const boostExpiration = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+    // User-selected boost duration (e.g. 30, 60, 120, 360, 1440 minutes, default 60)
+    const durationMinutes = Math.min(1440, Math.max(15, Number(req.body.durationMinutes) || 60));
+    const boostExpiration = new Date(Date.now() + durationMinutes * 60 * 1000).toISOString();
     const updated = db.updateProfile(user.id, { boostedUntil: boostExpiration });
 
-    sendSuccess(res, { boostedUntil: boostExpiration }, 'Profile boosted to top stack for 1 hour!');
+    const timeLabel = durationMinutes < 60
+      ? `${durationMinutes} minutes`
+      : `${(durationMinutes / 60).toFixed(1).replace('.0', '')} hour(s)`;
+
+    sendSuccess(
+      res,
+      { boostedUntil: boostExpiration, durationMinutes },
+      `Profile boosted to top stack for ${timeLabel}!`
+    );
   }
 
   // Report User (Apple App Store Guideline 1.2 requirement)

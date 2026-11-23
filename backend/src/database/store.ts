@@ -78,6 +78,8 @@ class DataStore {
         }
 
         logger.info(`💾 DataStore restored from disk: [${this.users.size}] users, [${this.messages.length}] messages, [${this.matches.size}] matches`);
+        this.purgeDemoUsers();
+        this.seedInitialData();
         return;
       }
     } catch (e: any) {
@@ -86,6 +88,60 @@ class DataStore {
 
     this.seedInitialData();
     this.saveToDisk();
+  }
+
+  // Purge fake demo profiles so only genuine accounts exist
+  public purgeDemoUsers(): void {
+    const demoPhones = new Set([
+      '+94771234567',
+      '+94772345678',
+      '+94773456789',
+      '+94774567890',
+      '+447911123456',
+    ]);
+
+    const toDeleteIds = new Set<string>(this.demoUserIds);
+
+    for (const [id, user] of this.users.entries()) {
+      if (demoPhones.has(user.phone)) {
+        toDeleteIds.add(id);
+      }
+    }
+
+    if (toDeleteIds.size === 0) return;
+
+    logger.info(`🧹 Purging [${toDeleteIds.size}] demo users and associated fake data...`);
+
+    for (const id of toDeleteIds) {
+      this.users.delete(id);
+      this.profiles.delete(id);
+      this.demoUserIds.delete(id);
+    }
+
+    // Remove swipes involving demo users
+    this.swipes = this.swipes.filter(
+      (s) => !toDeleteIds.has(s.fromUserId) && !toDeleteIds.has(s.toUserId)
+    );
+
+    // Remove matches involving demo users
+    for (const [matchId, match] of this.matches.entries()) {
+      if (toDeleteIds.has(match.user1Id) || toDeleteIds.has(match.user2Id)) {
+        this.matches.delete(matchId);
+      }
+    }
+
+    // Remove messages involving demo users
+    this.messages = this.messages.filter(
+      (m) => !toDeleteIds.has(m.senderId) && !toDeleteIds.has(m.receiverId)
+    );
+
+    // Remove ratings involving demo users
+    this.dateRatings = this.dateRatings.filter(
+      (r) => !toDeleteIds.has(r.fromUserId) && !toDeleteIds.has(r.toUserId)
+    );
+
+    this.saveToDisk();
+    logger.info(`✅ Demo users purged. Active authentic users: [${this.users.size}]`);
   }
 
   public saveToDisk(): void {
@@ -198,27 +254,7 @@ class DataStore {
     this.users.set(userId, newUser);
     this.profiles.set(userId, newProfile);
 
-    // Pre-seed an active conversation with the first demo profile so new users have an immediate chat
-    if (this.demoUserIds.size > 0) {
-      const firstDemoUserId = Array.from(this.demoUserIds)[0];
-      if (firstDemoUserId && firstDemoUserId !== userId) {
-        const matchId = uuidv4();
-        const welcomeMatch: Match = {
-          id: matchId,
-          user1Id: userId,
-          user2Id: firstDemoUserId,
-          createdAt: now,
-          isActive: true,
-        };
-        this.matches.set(matchId, welcomeMatch);
-        this.addMessage(
-          matchId,
-          firstDemoUserId,
-          'Ayubowan & Welcome to Yaalu! 😊 Very nice to connect with you. How is your day going?'
-        );
-      }
-    }
-
+    // Clean user registration without fake demo matches
     this.scheduleSave();
     return { user: newUser, profile: newProfile };
   }
@@ -575,11 +611,8 @@ class DataStore {
 
     const isVip = user.subscriptionTier !== 'free';
 
-    // Free Tier swipe quota enforcement (15 swipes per 24 hours)
+    // Core app is 100% free with unlimited swipes for early user acquisition!
     this.checkAndResetDailySwipes(user);
-    if (!isVip && action !== 'superlike' && user.dailySwipeCount >= 15) {
-      throw new Error('SWIPE_LIMIT_EXCEEDED');
-    }
 
     // Super Like check
     if (action === 'superlike') {
@@ -626,7 +659,7 @@ class DataStore {
       if (existingMatch) {
         isMatch = true;
         match = existingMatch;
-      } else if (counterpartSwipe || this.demoUserIds.has(toUserId)) {
+      } else if (counterpartSwipe) {
         isMatch = true;
         const matchId = uuidv4();
         match = {
@@ -638,15 +671,6 @@ class DataStore {
         };
         this.matches.set(matchId, match);
         logger.info(`Match created between [${fromUserId}] and [${toUserId}]!`);
-
-        const openingGreetings = [
-          'Ayubowan! 😊 Great to connect with you on Yaalu! How is your day going?',
-          'Hey there! Loved your profile ✨ Where are you based?',
-          'Hello! So glad we matched! Hope you are having a wonderful day 😊',
-          'Hi! Looking forward to getting to know you! What kind of music do you like?',
-        ];
-        const greeting = openingGreetings[Math.floor(Math.random() * openingGreetings.length)];
-        this.addMessage(matchId, toUserId, greeting);
       }
     }
 
@@ -751,10 +775,14 @@ class DataStore {
     };
   }
 
-  // Get Profiles that liked current user ("See Who Liked You" - VIP Feature)
+  // Get Profiles that liked current user ("See Who Liked You" - Free for Females, VIP for Others)
   public getWhoLikedUser(userId: string): UserProfile[] {
     const user = this.getUserById(userId);
-    if (!user || user.subscriptionTier === 'free') {
+    const profile = this.getProfileByUserId(userId);
+    const isFemale = profile?.gender?.toLowerCase() === 'female';
+    const isVip = user && user.subscriptionTier !== 'free';
+
+    if (!isVip && !isFemale) {
       throw new Error('VIP_REQUIRED_SEE_LIKES');
     }
 
@@ -986,136 +1014,42 @@ class DataStore {
     return transaction;
   }
 
-  // Seed realistic Sri Lankan & Diaspora demo data
+  // Seed master administrators only (No fake demo profiles)
   private seedInitialData() {
-    const demoProfiles = [
-      {
-        phone: '+94771234567',
-        name: 'Kasuni Silva',
-        age: 23,
-        gender: 'female' as const,
-        bio: 'Architecture student at Moratuwa Uni 🏛️ | Coffee addict ☕ | Sunset chaser in Mirissa 🌊',
-        photos: [
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
-          'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80',
-        ],
-        interests: ['Architecture', 'Beach Trips', 'Photography', 'Kottu Lover'],
-        intention: 'dating' as const,
-        district: 'Colombo',
-        lat: 6.9271,
-        lon: 79.8612,
-        verified: 'verified' as const,
-      },
-      {
-        phone: '+94772345678',
-        name: 'Dineth Perera',
-        age: 26,
-        gender: 'male' as const,
-        bio: 'Software engineer at a Colombo tech startup 💻 | Weekend surfer in Arugam Bay 🏄 | Music & road trips 🚗',
-        photos: [
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80',
-          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=800&q=80',
-        ],
-        interests: ['Tech', 'Surfing', 'Acoustic Guitar', 'Badminton'],
-        intention: 'casual' as const,
-        district: 'Colombo',
-        lat: 6.9015,
-        lon: 79.8564,
-        verified: 'verified' as const,
-      },
-      {
-        phone: '+94773456789',
-        name: 'Sanduni Fernando',
-        age: 24,
-        gender: 'female' as const,
-        bio: 'Fashion designer based in Negombo 👗 | Cat mom 🐱 | Looking for good vibes & deep conversations ✨',
-        photos: [
-          'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80',
-          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=800&q=80',
-        ],
-        interests: ['Fashion', 'Art & Craft', 'Cats', 'Live Music'],
-        intention: 'coffee' as const,
-        district: 'Gampaha',
-        lat: 7.2083,
-        lon: 79.8358,
-        verified: 'verified' as const,
-      },
-      {
-        phone: '+94774567890',
-        name: 'Malik Jayawardena',
-        age: 28,
-        gender: 'male' as const,
-        bio: 'Doctor in Kandy 🩺 | Hiking the Knuckles mountain range ⛰️ | Sri Lankan tea connoisseur ☕',
-        photos: [
-          'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=800&q=80',
-        ],
-        interests: ['Hiking', 'Medicine', 'Camping', 'Cricket'],
-        intention: 'serious' as const,
-        district: 'Kandy',
-        lat: 7.2906,
-        lon: 80.6337,
-        verified: 'verified' as const,
-      },
-      {
-        phone: '+447911123456',
-        name: 'Natasha Wickramasinghe',
-        age: 25,
-        gender: 'female' as const,
-        bio: 'Sri Lankan diaspora living in London 🇬🇧 | Fintech analyst | Visiting Sri Lanka every December! 🇱🇰',
-        photos: [
-          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80',
-        ],
-        interests: ['Travel', 'London Life', 'Sri Lankan Food', 'Museums'],
-        intention: 'travel' as const,
-        district: 'Diaspora (UK)',
-        lat: 51.5074,
-        lon: -0.1278,
-        verified: 'verified' as const,
-      },
-    ];
+    this.purgeDemoUsers();
 
-    for (const data of demoProfiles) {
-      const { user, profile } = this.createUser(data.phone);
-      this.demoUserIds.add(user.id);
-      profile.displayName = data.name;
-      profile.age = data.age;
-      profile.gender = data.gender;
-      profile.bio = data.bio;
-      profile.photos = data.photos;
-      profile.interests = data.interests;
-      profile.datingIntention = data.intention;
-      profile.homeDistrict = data.district;
-      profile.location.latitude = data.lat;
-      profile.location.longitude = data.lon;
-      profile.location.city = data.district;
-      profile.verificationStatus = data.verified;
+    // 1. Seed Yaalu Master Administrator (+94770000000)
+    const adminPhone = '+94770000000';
+    let adminUser = this.getUserByPhone(adminPhone);
+    if (!adminUser) {
+      const { user, profile } = this.createUser(adminPhone, 'admin@yaalu.lk');
+      user.role = 'admin';
+      user.subscriptionTier = 'vip_annual';
+      this.users.set(user.id, user);
+      profile.displayName = 'Yaalu Admin';
+      profile.bio = 'Yaalu Official System Administrator & Security Lead';
+      profile.verificationStatus = 'verified';
+      profile.photos = ['https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80'];
       this.updateProfile(user.id, profile);
-
-      // Seed Date Ratings
-      this.addDateRating('system_reviewer_1', user.id, 5, [
-        'Polite & Respectful',
-        'Great conversation',
-        'Looks like photos',
-        'Felt 100% Safe',
-      ], 'Had a lovely coffee date. Very respectful and engaging.');
-      this.addDateRating('system_reviewer_2', user.id, 5, [
-        'Showed Up On Time',
-        'Felt 100% Safe',
-        'Friendly Vibe',
-      ], 'Super friendly and punctual.');
     }
 
-    // Seed Yaalu Master Administrator
-    const adminPhone = '+94770000000';
-    const { user: adminUser, profile: adminProfile } = this.createUser(adminPhone, 'admin@yaalu.lk');
-    adminUser.role = 'admin';
-    adminUser.subscriptionTier = 'vip_annual';
-    this.users.set(adminUser.id, adminUser);
-    adminProfile.displayName = 'Yaalu Admin';
-    adminProfile.bio = 'Yaalu Official System Administrator & Security Lead';
-    adminProfile.verificationStatus = 'verified';
-    adminProfile.photos = ['https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80'];
-    this.updateProfile(adminUser.id, adminProfile);
+    // 2. Seed Yaalu Platform Owner (+94786799544)
+    const ownerPhone = '+94786799544';
+    let ownerUser = this.getUserByPhone(ownerPhone);
+    if (!ownerUser) {
+      const { user, profile } = this.createUser(ownerPhone, 'owner@yaalu.lk');
+      user.role = 'admin';
+      user.subscriptionTier = 'vip_annual';
+      user.superLikesRemaining = 999;
+      this.users.set(user.id, user);
+      profile.displayName = 'Ushara';
+      profile.bio = 'Yaalu Platform Owner';
+      profile.verificationStatus = 'verified';
+      profile.photos = ['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80'];
+      this.updateProfile(user.id, profile);
+    }
+
+    this.saveToDisk();
   }
 }
 

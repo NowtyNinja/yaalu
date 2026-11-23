@@ -447,22 +447,23 @@ class ProfileScreen extends StatelessWidget {
             _buildProfileTile(
               icon: Icons.bolt_rounded,
               title: 'Profile Boost',
-              subtitle: 'Be the top profile in your district for 1 hour',
+              subtitle: 'Paid feature — Boost to #1 top spot for chosen time',
               trailing: 'BOOST',
               isVipOnly: user?.isVip != true,
               onTap: () async {
                 if (user?.isVip != true) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Profile Boost is a paid feature for all members. Upgrade to VIP to activate!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const VipPaywallScreen()),
                   );
                   return;
                 }
-                try {
-                  await ApiService.post(ApiEndpoints.boost, {});
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('⚡ Profile boosted to top stack!')),
-                  );
-                } catch (_) {}
+                _showBoostDurationSheet(context);
               },
             ),
 
@@ -536,6 +537,94 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showBoostDurationSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 44,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.borderLight,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Row(
+                children: [
+                  Icon(Icons.bolt_rounded, color: AppColors.vipGold, size: 28),
+                  SizedBox(width: 8),
+                  Text(
+                    'Boost Profile Visibility',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Choose how long you want your profile to appear at the #1 top spot for discovery in your area.',
+                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 18),
+              _buildBoostDurationOption(ctx, 30, '30 Minutes', '⚡ Quick peak boost'),
+              _buildBoostDurationOption(ctx, 60, '1 Hour', '⭐ Standard recommended boost'),
+              _buildBoostDurationOption(ctx, 120, '2 Hours', '🔥 Extended prime time boost'),
+              _buildBoostDurationOption(ctx, 360, '6 Hours', '🚀 Maximum half-day exposure'),
+              _buildBoostDurationOption(ctx, 1440, '24 Hours', '👑 Full day super visibility'),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBoostDurationOption(BuildContext context, int minutes, String label, String subtitle) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.vipGold),
+        onTap: () async {
+          Navigator.of(context).pop();
+          try {
+            await ApiService.post(ApiEndpoints.boost, {'durationMinutes': minutes});
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('⚡ Profile boosted to top stack for $label!'),
+                  backgroundColor: AppColors.vipGold,
+                ),
+              );
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to boost: $e')),
+              );
+            }
+          }
+        },
       ),
     );
   }

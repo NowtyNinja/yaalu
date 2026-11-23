@@ -81,7 +81,7 @@
         </button>
         <button type="button" id="quickUnlockBtn" onclick="quickDemoUnlock()"
           class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 border border-slate-200">
-          ⚡ 1-Click Instant Unlock (Demo Admin)
+          ⚡ 1-Click Master Login
         </button>
       </form>
       <div class="mt-4 text-center text-xs text-slate-400">
@@ -170,10 +170,16 @@
         </button>
       </nav>
 
-      <button onclick="loadAllAdminData()" class="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-50 shadow-sm flex items-center gap-1.5 transition-all">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-        Refresh Data
-      </button>
+      <div class="flex items-center gap-2">
+        <button onclick="purgeDemoData()" class="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl hover:bg-rose-100 shadow-sm flex items-center gap-1.5 transition-all" title="Remove all fake demo profiles">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          Purge Demo Data
+        </button>
+        <button onclick="loadAllAdminData()" class="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-50 shadow-sm flex items-center gap-1.5 transition-all">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Refresh Data
+        </button>
+      </div>
     </div>
 
     <!-- TAB 1: USER MANAGEMENT -->
@@ -712,6 +718,19 @@
         }
       } catch (e) {
         tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500">${e.message}</td></tr>`;
+      }
+    }
+
+    async function purgeDemoData() {
+      if (!confirm('Are you sure you want to permanently delete all fake demo profiles from the database? Only real users will be kept.')) return;
+      try {
+        const res = await authFetch(`${API_BASE}/admin/purge-demo`, {
+          method: 'POST'
+        });
+        alert('All fake demo profiles have been removed! Remaining genuine users: ' + (res?.data?.activeUsers ?? 0));
+        loadAllAdminData();
+      } catch (e) {
+        alert('Error purging demo users: ' + e.message);
       }
     }
 

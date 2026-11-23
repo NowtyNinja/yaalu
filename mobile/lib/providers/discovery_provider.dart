@@ -48,6 +48,8 @@ class DiscoveryProvider with ChangeNotifier {
 
       if (data['remainingSwipesToday'] is int) {
         _remainingSwipes = data['remainingSwipesToday'];
+      } else {
+        _remainingSwipes = 999;
       }
 
       _isLoading = false;
@@ -82,6 +84,8 @@ class DiscoveryProvider with ChangeNotifier {
       final data = res['data'];
       if (data['remainingSwipesToday'] is int) {
         _remainingSwipes = data['remainingSwipesToday'];
+      } else {
+        _remainingSwipes = 999;
       }
 
       // Check if it's a mutual match!

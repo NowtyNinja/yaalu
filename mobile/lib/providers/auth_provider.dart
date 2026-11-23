@@ -21,6 +21,8 @@ class AuthProvider with ChangeNotifier {
   bool get isAuthenticated => _user != null;
   bool get isNewUser => _isNewUser;
   bool get isVip => _user?.isVip ?? false;
+  bool get isFemale => _profile?.gender.toLowerCase() == 'female';
+  bool get canSeeWhoLikedMe => isVip || isFemale;
   String? get mockOtpHint => _mockOtpHint;
 
   // Check existing session
