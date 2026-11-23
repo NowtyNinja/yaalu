@@ -1,13 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/api_endpoints.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/native_image_picker.dart';
+import '../../providers/auth_provider.dart';
 import '../home/main_navigation_screen.dart';
 
 class AiLivenessCheckScreen extends StatefulWidget {
-  const AiLivenessCheckScreen({super.key});
+  final bool fromOnboarding;
+  const AiLivenessCheckScreen({super.key, this.fromOnboarding = false});
 
   @override
   State<AiLivenessCheckScreen> createState() => _AiLivenessCheckScreenState();
@@ -148,15 +151,17 @@ class _AiLivenessCheckScreenState extends State<AiLivenessCheckScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  if (Navigator.of(context).canPop()) {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pop(true);
-                  } else {
+                onPressed: () async {
+                  await context.read<AuthProvider>().checkAuthStatus();
+                  if (!context.mounted) return;
+                  if (widget.fromOnboarding) {
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
                       (route) => false,
                     );
+                  } else {
+                    Navigator.of(context).pop(); // pop dialog
+                    Navigator.of(context).pop(true); // pop screen back to profile
                   }
                 },
                 child: const Text('Start Exploring Matches 🚀'),
@@ -169,13 +174,13 @@ class _AiLivenessCheckScreenState extends State<AiLivenessCheckScreen>
   }
 
   void _skipForNow() {
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    } else {
+    if (widget.fromOnboarding) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
         (route) => false,
       );
+    } else {
+      Navigator.of(context).pop();
     }
   }
 

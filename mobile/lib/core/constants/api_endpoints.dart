@@ -15,6 +15,11 @@ class ApiEndpoints {
   static String get refreshToken => '$baseUrl/auth/refresh-token';
   static String get logout => '$baseUrl/auth/logout';
   static String get deleteAccount => '$baseUrl/auth/delete-account';
+  static String get changePhoneRequest => '$baseUrl/auth/change-phone/request';
+  static String get changePhoneVerify => '$baseUrl/auth/change-phone/verify';
+  static String get recoveryEmail => '$baseUrl/auth/recovery-email';
+  static String get recoverAccountRequest => '$baseUrl/auth/recover/request';
+  static String get recoverAccountVerify => '$baseUrl/auth/recover/verify';
 
   // User & Profile
   static String get myProfile => '$baseUrl/users/me';

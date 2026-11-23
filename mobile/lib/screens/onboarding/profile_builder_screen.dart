@@ -366,7 +366,7 @@ class _ProfileBuilderScreenState extends State<ProfileBuilderScreen> {
 
     if (success) {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const AiLivenessCheckScreen()),
+        MaterialPageRoute(builder: (_) => const AiLivenessCheckScreen(fromOnboarding: true)),
       );
     }
   }

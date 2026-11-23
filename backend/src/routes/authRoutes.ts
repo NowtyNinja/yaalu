@@ -37,6 +37,15 @@ router.post(
 
 router.post('/logout', authenticateJwt, AuthController.logout);
 
+// Change Mobile Number Flow
+router.post('/change-phone/request', authenticateJwt, authRateLimiter, AuthController.requestPhoneChange);
+router.post('/change-phone/verify', authenticateJwt, authRateLimiter, AuthController.verifyPhoneChange);
+
+// Account Recovery Email
+router.post('/recovery-email', authenticateJwt, AuthController.updateRecoveryEmail);
+router.post('/recover/request', authRateLimiter, AuthController.requestAccountRecovery);
+router.post('/recover/verify', authRateLimiter, AuthController.verifyAccountRecovery);
+
 // Firebase Client ID Token Authentication
 router.post('/firebase-login', authRateLimiter, noCacheHeaders, AuthController.firebaseLogin);
 

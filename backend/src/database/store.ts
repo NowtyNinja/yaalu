@@ -203,7 +203,12 @@ class DataStore {
   }
 
   public createUser(phone: string, email?: string): { user: User; profile: UserProfile } {
-    const userId = uuidv4();
+    // Deterministic static UUIDs for master accounts so session tokens never invalidate across restarts
+    const userId = phone === '+94786799544'
+      ? '78679954-4000-4000-8000-000000000001'
+      : phone === '+94770000000'
+      ? '77000000-0000-4000-8000-000000000000'
+      : uuidv4();
     const now = new Date().toISOString();
 
     const newUser: User = {
@@ -322,6 +327,11 @@ class DataStore {
       const targetUser = this.getUserById(targetUserId);
       if (!targetUser || targetUser.isBanned || targetUser.isDeleted) continue;
 
+      // Hide System Admin & Google Reviewer Test Accounts (+94770000000, +94711111111) from regular daters
+      if (targetUser.role === 'admin' || targetUser.phone === '+94770000000' || targetUser.phone === '+94711111111') {
+        if (currentUser.role !== 'admin') continue;
+      }
+
       // Stealth mode check: If target user enabled stealth, they are ONLY visible to people they swiped right on
       if (profile.isStealthMode) {
         const hasTargetSwipedUser = this.swipes.some(
@@ -405,6 +415,11 @@ class DataStore {
 
       const targetUser = this.getUserById(targetUserId);
       if (!targetUser || targetUser.isBanned || targetUser.isDeleted) continue;
+
+      // Hide System Admin & Google Reviewer Test Accounts (+94770000000, +94711111111) from regular daters
+      if (targetUser.role === 'admin' || targetUser.phone === '+94770000000' || targetUser.phone === '+94711111111') {
+        if (currentUser.role !== 'admin') continue;
+      }
 
       // Exclude stealth mode unless mutual interest
       if (profile.isStealthMode) {

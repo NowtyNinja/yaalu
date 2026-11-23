@@ -249,7 +249,11 @@ class MainActivity: FlutterActivity() {
 
     private fun launchCamera() {
         try {
-            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+                putExtra("android.intent.extras.CAMERA_FACING", 1)
+                putExtra("android.intent.extras.LENS_FACING_FRONT", 1)
+                putExtra("android.intent.extra.USE_FRONT_CAMERA", true)
+            }
             startActivityForResult(intent, REQUEST_CAMERA)
         } catch (e: Exception) {
             pendingPickerResult?.error("CAMERA_ERROR", e.message, null)

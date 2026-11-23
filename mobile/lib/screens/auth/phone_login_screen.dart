@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../home/main_navigation_screen.dart';
+import '../onboarding/profile_builder_screen.dart';
 import 'otp_verification_screen.dart';
 
 class PhoneLoginScreen extends StatefulWidget {
@@ -19,6 +21,223 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   void dispose() {
     _phoneController.dispose();
     super.dispose();
+  }
+
+  void _showEmailRecoveryDialog(BuildContext context) {
+    final emailController = TextEditingController();
+    final otpController = TextEditingController();
+    final newPhoneController = TextEditingController();
+
+    int step = 1;
+    bool isLoading = false;
+    String? errorMessage;
+    String? maskedPhone;
+    String? otpHint;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.coral.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.sim_card_alert_rounded, color: AppColors.coral, size: 24),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                step == 1 ? 'Lost SIM Recovery' : 'Verify Recovery',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (step == 1) ...[
+                  const Text(
+                    'Did you lose or damage your SIM card? Enter your linked recovery email to reclaim your account and messages.',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: 'Registered Recovery Email',
+                      hintText: 'name@example.com',
+                      prefixIcon: const Icon(Icons.email_outlined, color: AppColors.coral),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ] else ...[
+                  Text(
+                    'Account found: ${maskedPhone ?? ""}',
+                    style: const TextStyle(color: AppColors.onlineGreen, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Enter the 6-digit recovery OTP and your new phone number:',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: otpController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(letterSpacing: 6, fontSize: 20, fontWeight: FontWeight.bold),
+                    decoration: InputDecoration(
+                      hintText: '------',
+                      labelText: 'Recovery OTP',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                  if (otpHint != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        'Demo OTP Hint: $otpHint',
+                        style: const TextStyle(color: AppColors.onlineGreen, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  TextField(
+                    controller: newPhoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: 'New SIM Phone Number',
+                      hintText: '07X XXXXXXX or +947X...',
+                      prefixIcon: const Icon(Icons.phone_android_rounded, color: AppColors.coral),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ],
+                if (errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Text(
+                      errorMessage!,
+                      style: const TextStyle(color: AppColors.passRed, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.of(dialogCtx).pop(),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.coral,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final auth = context.read<AuthProvider>();
+                      setState(() {
+                        isLoading = true;
+                        errorMessage = null;
+                      });
+
+                      if (step == 1) {
+                        final email = emailController.text.trim();
+                        if (email.isEmpty || !email.contains('@')) {
+                          setState(() {
+                            isLoading = false;
+                            errorMessage = 'Please enter a valid recovery email address';
+                          });
+                          return;
+                        }
+                        final res = await auth.recoverAccountRequest(email);
+                        if (res['success'] == true) {
+                          setState(() {
+                            step = 2;
+                            isLoading = false;
+                            if (res['data'] != null) {
+                              maskedPhone = res['data']['maskedPhone']?.toString();
+                              otpHint = res['data']['recoveryOtpHint']?.toString();
+                            }
+                          });
+                        } else {
+                          setState(() {
+                            isLoading = false;
+                            errorMessage = res['message'] ?? 'No account linked with this email';
+                          });
+                        }
+                      } else {
+                        final email = emailController.text.trim();
+                        final otp = otpController.text.trim();
+                        final newPhone = newPhoneController.text.trim();
+                        if (otp.length < 4 || newPhone.isEmpty) {
+                          setState(() {
+                            isLoading = false;
+                            errorMessage = 'Please enter OTP and your new phone number';
+                          });
+                          return;
+                        }
+
+                        final success = await auth.recoverAccountVerify(
+                          email: email,
+                          otp: otp,
+                          newPhone: newPhone,
+                        );
+
+                        if (success) {
+                          if (dialogCtx.mounted) {
+                            Navigator.of(dialogCtx).pop();
+                          }
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: AppColors.onlineGreen,
+                                content: Text('Account recovered successfully! Welcome back! 🎉'),
+                              ),
+                            );
+
+                            if (auth.isNewUser || auth.profile == null || auth.profile!.displayName.isEmpty) {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(builder: (_) => const ProfileBuilderScreen()),
+                                (route) => false,
+                              );
+                            } else {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+                                (route) => false,
+                              );
+                            }
+                          }
+                        } else {
+                          setState(() {
+                            isLoading = false;
+                            errorMessage = auth.errorMessage ?? 'Invalid recovery code or phone number';
+                          });
+                        }
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(
+                      step == 1 ? 'Find Account' : 'Recover & Login',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _submit() async {
@@ -265,6 +484,27 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                                 letterSpacing: 0.5,
                               ),
                             ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Lost SIM / Account Recovery Option
+                  Center(
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.textSecondary,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      ),
+                      icon: const Icon(Icons.sim_card_alert_rounded, size: 18, color: AppColors.coral),
+                      label: const Text(
+                        'Lost your SIM? Recover via Email 📧',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                      onPressed: () => _showEmailRecoveryDialog(context),
                     ),
                   ),
                   const SizedBox(height: 16),

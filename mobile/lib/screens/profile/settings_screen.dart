@@ -11,6 +11,302 @@ import '../splash_screen.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
+  void _showChangePhoneDialog(BuildContext context) {
+    final auth = context.read<AuthProvider>();
+    final currentPhone = auth.user?.phone ?? 'Not set';
+    final phoneController = TextEditingController();
+    final otpController = TextEditingController();
+
+    int step = 1;
+    bool isLoading = false;
+    String? errorMessage;
+    String? otpHint;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.coral.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.phone_iphone_rounded, color: AppColors.coral, size: 24),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                step == 1 ? 'Change Mobile Number' : 'Verify New Number',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (step == 1) ...[
+                Text(
+                  'Current Active Phone: $currentPhone',
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Enter your new Sri Lankan phone number. We will send an SMS OTP to confirm ownership.',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    labelText: 'New Phone Number',
+                    hintText: '07X XXXXXXX or +947X...',
+                    prefixIcon: const Icon(Icons.phone_forwarded_rounded, color: AppColors.coral),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ] else ...[
+                Text(
+                  'SMS OTP sent to ${phoneController.text.trim()}',
+                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Enter the 6-digit code received on your new SIM card:',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: otpController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  autofocus: true,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(letterSpacing: 6, fontSize: 20, fontWeight: FontWeight.bold),
+                  decoration: InputDecoration(
+                    hintText: '------',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+                if (otpHint != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Test OTP: $otpHint',
+                      style: const TextStyle(color: AppColors.onlineGreen, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+              ],
+              if (errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    errorMessage!,
+                    style: const TextStyle(color: AppColors.passRed, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.of(dialogCtx).pop(),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.coral,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      setState(() {
+                        isLoading = true;
+                        errorMessage = null;
+                      });
+
+                      if (step == 1) {
+                        final phone = phoneController.text.trim();
+                        if (phone.isEmpty) {
+                          setState(() {
+                            isLoading = false;
+                            errorMessage = 'Please enter a valid phone number';
+                          });
+                          return;
+                        }
+                        final res = await auth.changePhoneRequest(phone);
+                        if (res['success'] == true) {
+                          setState(() {
+                            step = 2;
+                            isLoading = false;
+                            if (res['data'] != null && res['data']['mockOtpHint'] != null) {
+                              otpHint = res['data']['mockOtpHint'].toString();
+                            }
+                          });
+                        } else {
+                          setState(() {
+                            isLoading = false;
+                            errorMessage = res['message'] ?? 'Failed to send OTP';
+                          });
+                        }
+                      } else {
+                        final otp = otpController.text.trim();
+                        final phone = phoneController.text.trim();
+                        if (otp.length < 4) {
+                          setState(() {
+                            isLoading = false;
+                            errorMessage = 'Please enter the full verification code';
+                          });
+                          return;
+                        }
+                        final success = await auth.changePhoneVerify(phone, otp);
+                        if (success) {
+                          if (dialogCtx.mounted) {
+                            Navigator.of(dialogCtx).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: AppColors.onlineGreen,
+                                content: Text('Mobile number successfully updated to $phone! 🎉'),
+                              ),
+                            );
+                          }
+                        } else {
+                          setState(() {
+                            isLoading = false;
+                            errorMessage = auth.errorMessage ?? 'Invalid verification code';
+                          });
+                        }
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(
+                      step == 1 ? 'Send Code' : 'Verify & Update',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRecoveryEmailDialog(BuildContext context) {
+    final auth = context.read<AuthProvider>();
+    final currentEmail = auth.user?.email ?? '';
+    final emailController = TextEditingController(text: currentEmail);
+    bool isLoading = false;
+    String? errorMessage;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.superLikeBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.mark_email_read_rounded, color: AppColors.superLikeBlue, size: 24),
+              ),
+              const SizedBox(width: 10),
+              const Text('Recovery Email', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Protect your account against lost or stolen SIM cards. If you ever lose your phone or SIM, you can recover your Yaalu account via this email.',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Your Email Address',
+                  hintText: 'name@example.com',
+                  prefixIcon: const Icon(Icons.email_outlined, color: AppColors.superLikeBlue),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+              if (errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    errorMessage!,
+                    style: const TextStyle(color: AppColors.passRed, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.superLikeBlue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final email = emailController.text.trim();
+                      if (email.isEmpty || !email.contains('@')) {
+                        setState(() => errorMessage = 'Please enter a valid email address');
+                        return;
+                      }
+
+                      setState(() {
+                        isLoading = true;
+                        errorMessage = null;
+                      });
+
+                      final success = await auth.updateRecoveryEmail(email);
+                      if (success) {
+                        if (dialogCtx.mounted) {
+                          Navigator.of(dialogCtx).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              backgroundColor: AppColors.onlineGreen,
+                              content: Text('Recovery email linked successfully! 📧🔐'),
+                            ),
+                          );
+                        }
+                      } else {
+                        setState(() {
+                          isLoading = false;
+                          errorMessage = auth.errorMessage ?? 'Failed to update recovery email';
+                        });
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Save Email', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _confirmDeleteAccount(BuildContext context) {
     showDialog(
       context: context,
@@ -147,6 +443,41 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 24),
+
+          // Account & Security Settings (Change Phone & Lost SIM Recovery)
+          const Text(
+            'Account & Security',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+
+          Consumer<AuthProvider>(
+            builder: (context, auth, _) {
+              final userPhone = auth.user?.phone ?? 'Not set';
+              final userEmail = auth.user?.email;
+              return Column(
+                children: [
+                  _buildSettingsTile(
+                    context,
+                    icon: Icons.phone_android_rounded,
+                    title: 'Change Mobile Number',
+                    subtitle: 'Current: $userPhone',
+                    onTap: () => _showChangePhoneDialog(context),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSettingsTile(
+                    context,
+                    icon: Icons.mark_email_read_rounded,
+                    title: 'Lost SIM Recovery Email',
+                    subtitle: userEmail != null ? 'Linked: $userEmail' : 'Not linked (Tap to set)',
+                    isVerified: userEmail != null,
+                    onTap: () => _showRecoveryEmailDialog(context),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 24),
 
@@ -330,7 +661,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 40),
           const Center(
             child: Text(
-              'Yaalu v1.0.0 (Build 1)\nConnecting people everywhere',
+              'Yaalu v1.0.11 (Build 12)\nConnecting people everywhere',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
@@ -340,7 +671,14 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingsTile(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap}) {
+  Widget _buildSettingsTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    bool isVerified = false,
+    required VoidCallback onTap,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -351,6 +689,27 @@ class SettingsScreen extends StatelessWidget {
       child: ListTile(
         leading: Icon(icon, color: AppColors.coral),
         title: Text(title, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
+        subtitle: subtitle != null
+            ? Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: isVerified ? AppColors.onlineGreen : AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: isVerified ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (isVerified) ...[
+                    const SizedBox(width: 4),
+                    const Icon(Icons.verified_rounded, size: 14, color: AppColors.onlineGreen),
+                  ],
+                ],
+              )
+            : null,
         trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textMuted, size: 14),
         onTap: onTap,
       ),

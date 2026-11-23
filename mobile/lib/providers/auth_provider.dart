@@ -151,6 +151,124 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // Change Phone Number - Step 1: Request OTP
+  Future<Map<String, dynamic>> changePhoneRequest(String newPhone) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      final res = await ApiService.post(ApiEndpoints.changePhoneRequest, {'newPhone': newPhone});
+      _setLoading(false);
+      return {'success': true, 'data': res['data'], 'message': res['message']};
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _setLoading(false);
+      return {'success': false, 'message': _errorMessage};
+    }
+  }
+
+  // Change Phone Number - Step 2: Verify OTP & Update
+  Future<bool> changePhoneVerify(String newPhone, String otp) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      final res = await ApiService.post(ApiEndpoints.changePhoneVerify, {
+        'newPhone': newPhone,
+        'otp': otp,
+      });
+      final data = res['data'];
+      final tokens = data['tokens'];
+      _user = UserModel.fromJson(data['user']);
+      await SecureStorageService.saveTokens(
+        accessToken: tokens['accessToken'],
+        refreshToken: tokens['refreshToken'],
+        userId: _user!.id,
+      );
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  // Set / Update Account Recovery Email
+  Future<bool> updateRecoveryEmail(String email) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      await ApiService.post(ApiEndpoints.recoveryEmail, {'email': email});
+      if (_user != null) {
+        _user = UserModel(
+          id: _user!.id,
+          phone: _user!.phone,
+          email: email.trim().toLowerCase(),
+          role: _user!.role,
+          subscriptionTier: _user!.subscriptionTier,
+          subscriptionExpiresAt: _user!.subscriptionExpiresAt,
+          dailySwipeCount: _user!.dailySwipeCount,
+          superLikesRemaining: _user!.superLikesRemaining,
+          isVip: _user!.isVip,
+        );
+      }
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  // Lost SIM - Request Account Recovery via Email
+  Future<Map<String, dynamic>> recoverAccountRequest(String email) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      final res = await ApiService.post(ApiEndpoints.recoverAccountRequest, {'email': email});
+      _setLoading(false);
+      return {'success': true, 'data': res['data'], 'message': res['message']};
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _setLoading(false);
+      return {'success': false, 'message': _errorMessage};
+    }
+  }
+
+  // Lost SIM - Verify Recovery OTP & Link New Phone Number
+  Future<bool> recoverAccountVerify({required String email, required String otp, required String newPhone}) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      final res = await ApiService.post(ApiEndpoints.recoverAccountVerify, {
+        'email': email,
+        'otp': otp,
+        'newPhone': newPhone,
+      });
+      final data = res['data'];
+      final tokens = data['tokens'];
+      _user = UserModel.fromJson(data['user']);
+      if (data['profile'] != null) {
+        _profile = ProfileModel.fromJson(data['profile']);
+      }
+      await SecureStorageService.saveTokens(
+        accessToken: tokens['accessToken'],
+        refreshToken: tokens['refreshToken'],
+        userId: _user!.id,
+      );
+      await SocketService.connect();
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _setLoading(false);
+      return false;
+    }
+  }
+
   void _setLoading(bool val) {
     _isLoading = val;
     notifyListeners();
