@@ -85,7 +85,7 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
     try {
       await ApiService.post(ApiEndpoints.bankTransfer, {
         'tier': _selectedTier,
-        'bankName': 'Commercial Bank of Ceylon',
+        'bankName': 'Seylan Bank',
         'referenceCode': refCode,
         'slipNote': 'User confirmed transfer via WhatsApp verification flow',
       });
@@ -325,7 +325,7 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
                     child: GestureDetector(
                       onTap: () => setState(() => _paymentProvider = 'bank_transfer'),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
                         decoration: BoxDecoration(
                           color: _paymentProvider == 'bank_transfer' ? Colors.white : AppColors.surface,
                           borderRadius: BorderRadius.circular(16),
@@ -337,57 +337,26 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
                         ),
                         child: Column(
                           children: const [
-                            Icon(Icons.account_balance_rounded, color: AppColors.vipGold, size: 22),
-                            SizedBox(height: 4),
+                            Icon(Icons.account_balance_rounded, color: AppColors.vipGold, size: 24),
+                            SizedBox(height: 6),
                             Text(
                               '🏦 Bank Transfer',
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                             ),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-
-                  // PayHere Tab
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _paymentProvider = 'payhere'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-                        decoration: BoxDecoration(
-                          color: _paymentProvider == 'payhere' ? Colors.white : AppColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: _paymentProvider == 'payhere' ? AppColors.coral : AppColors.borderLight,
-                            width: _paymentProvider == 'payhere' ? 2 : 1,
-                          ),
-                          boxShadow: _paymentProvider == 'payhere' ? AppColors.softShadow : null,
-                        ),
-                        child: Column(
-                          children: const [
-                            Icon(Icons.payment_rounded, color: AppColors.coral, size: 22),
-                            SizedBox(height: 4),
-                            Text(
-                              'PayHere',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
 
                   // App Store / Google Play
                   Expanded(
                     child: GestureDetector(
                       onTap: () => setState(() => _paymentProvider = 'iap'),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
                         decoration: BoxDecoration(
                           color: _paymentProvider == 'iap' ? Colors.white : AppColors.surface,
                           borderRadius: BorderRadius.circular(16),
@@ -399,12 +368,12 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
                         ),
                         child: Column(
                           children: const [
-                            Icon(Icons.apple_rounded, color: AppColors.textPrimary, size: 22),
-                            SizedBox(height: 4),
+                            Icon(Icons.shop_two_rounded, color: AppColors.textPrimary, size: 24),
+                            SizedBox(height: 6),
                             Text(
-                              'In-App Store',
+                              '📱 In-App Store',
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                             ),
                           ],
                         ),
@@ -441,10 +410,10 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      _buildBankDetailRow('Bank Name', 'Commercial Bank of Ceylon'),
-                      _buildBankDetailRow('Account Name', 'Yaalu Lanka (Pvt) Ltd'),
-                      _buildBankDetailRowWithCopy('Account Number', '8012 3456 7890'),
-                      _buildBankDetailRow('Branch', 'Colombo City Centre (080)'),
+                      _buildBankDetailRow('Bank Name', 'Seylan Bank'),
+                      _buildBankDetailRow('Account Name', 'SELL PHONE TECH (PVT)  LTD'),
+                      _buildBankDetailRowWithCopy('Account Number', '011013666444120'),
+                      _buildBankDetailRow('Branch', 'Gampaha'),
                       _buildBankDetailRow('Transfer Amount', amount, isHighlight: true),
                       _buildBankDetailRowWithCopy('Reference Code', refCode, isHighlight: true),
 
