@@ -20,7 +20,6 @@ class SettingsScreen extends StatelessWidget {
     int step = 1;
     bool isLoading = false;
     String? errorMessage;
-    String? otpHint;
 
     showDialog(
       context: context,
@@ -95,14 +94,6 @@ class SettingsScreen extends StatelessWidget {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                 ),
-                if (otpHint != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      'Test OTP: $otpHint',
-                      style: const TextStyle(color: AppColors.onlineGreen, fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                  ),
               ],
               if (errorMessage != null)
                 Padding(
@@ -146,9 +137,6 @@ class SettingsScreen extends StatelessWidget {
                           setState(() {
                             step = 2;
                             isLoading = false;
-                            if (res['data'] != null && res['data']['mockOtpHint'] != null) {
-                              otpHint = res['data']['mockOtpHint'].toString();
-                            }
                           });
                         } else {
                           setState(() {
@@ -521,119 +509,109 @@ class SettingsScreen extends StatelessWidget {
 
           const SizedBox(height: 28),
 
-          // Master Admin Console
-          const Text(
-            'Administrator & Security',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
+          // Master Admin Console (Restricted exclusively to Owner & Admins; completely invisible to normal users)
+          Consumer<AuthProvider>(
+            builder: (context, auth, _) {
+              final isAdmin = auth.user?.role == 'admin' || auth.user?.phone == '+94786799544';
+              if (!isAdmin) return const SizedBox.shrink();
 
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.vipGold.withValues(alpha: 0.4)),
-              boxShadow: AppColors.softShadow,
-            ),
-            child: ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.admin_panel_settings_rounded, color: AppColors.vipGold, size: 24),
-              ),
-              title: const Text('Master Admin Console', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-              subtitle: const Text('Live KPI Dashboard, User Moderation & Bank Transfers',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted),
-              onTap: () {
-                final passwordCtrl = TextEditingController(text: 'admin123');
-                bool isUnlocking = false;
-                String? errorText;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Administrator & Security',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
 
-                showDialog(
-                  context: context,
-                  builder: (ctx) => StatefulBuilder(
-                    builder: (context, setModalState) => AlertDialog(
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                      title: const Row(
-                        children: [
-                          Icon(Icons.admin_panel_settings_rounded, color: AppColors.vipGold, size: 28),
-                          SizedBox(width: 8),
-                          Text('Unlock Admin Panel', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                        ],
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppColors.vipGold.withValues(alpha: 0.4)),
+                      boxShadow: AppColors.softShadow,
+                    ),
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF8E1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.admin_panel_settings_rounded, color: AppColors.vipGold, size: 24),
                       ),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Enter master administrator credentials to access live KPIs, moderation, and payments:',
-                            style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
-                          ),
-                          const SizedBox(height: 14),
-                          TextField(
-                            controller: passwordCtrl,
-                            obscureText: true,
-                            decoration: InputDecoration(
-                              labelText: 'Admin Password / Master PIN',
-                              hintText: 'admin123 or 777777',
-                              prefixIcon: const Icon(Icons.lock_rounded, color: AppColors.vipGold),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                              errorText: errorText,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFFF8E1),
-                                foregroundColor: const Color(0xFFD97706),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
+                      title: const Text('Master Admin Console', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+                      subtitle: const Text('Live KPI Dashboard, User Moderation & Bank Transfers',
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted),
+                      onTap: () {
+                        final passwordCtrl = TextEditingController();
+                        bool isUnlocking = false;
+                        String? errorText;
+
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => StatefulBuilder(
+                            builder: (context, setModalState) => AlertDialog(
+                              backgroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                              title: const Row(
+                                children: [
+                                  Icon(Icons.admin_panel_settings_rounded, color: AppColors.vipGold, size: 28),
+                                  SizedBox(width: 8),
+                                  Text('Unlock Admin Panel', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                                ],
                               ),
-                              icon: const Icon(Icons.flash_on_rounded, size: 18),
-                              label: const Text('⚡ 1-Click Instant Unlock (Demo)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                              onPressed: isUnlocking
-                                  ? null
-                                  : () {
-                                      passwordCtrl.text = 'admin123';
-                                      _performUnlock(context, 'admin', 'admin123', setModalState, (val) => isUnlocking = val, (err) => errorText = err);
-                                    },
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Enter master administrator password to access live KPIs, moderation, and payments:',
+                                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  TextField(
+                                    controller: passwordCtrl,
+                                    obscureText: true,
+                                    decoration: InputDecoration(
+                                      labelText: 'Admin Password',
+                                      hintText: 'Enter Admin Password',
+                                      prefixIcon: const Icon(Icons.lock_rounded, color: AppColors.vipGold),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                                      errorText: errorText,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.coral),
+                                  onPressed: isUnlocking
+                                      ? null
+                                      : () {
+                                          _performUnlock(context, 'admin', passwordCtrl.text.trim(), setModalState, (val) => isUnlocking = val, (err) => errorText = err);
+                                        },
+                                  child: isUnlocking
+                                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                      : const Text('Unlock Console', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop(),
-                          child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.coral),
-                          onPressed: isUnlocking
-                              ? null
-                              : () {
-                                  _performUnlock(context, 'admin', passwordCtrl.text.trim(), setModalState, (val) => isUnlocking = val, (err) => errorText = err);
-                                },
-                          child: isUnlocking
-                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : const Text('Unlock Console', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
-                );
-              },
-            ),
+                  const SizedBox(height: 28),
+                ],
+              );
+            },
           ),
-
-          const SizedBox(height: 28),
 
           // Account Deletion
           const Text(
@@ -661,7 +639,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 40),
           const Center(
             child: Text(
-              'Yaalu v1.0.11 (Build 12)\nConnecting people everywhere',
+              'Yaalu v1.0.12 (Build 13)\nConnecting people everywhere',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),

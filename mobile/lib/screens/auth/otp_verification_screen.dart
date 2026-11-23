@@ -130,8 +130,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Dynamic OTP Hint Pill (Shown only in Mock/Dev mode or Gateway Fallback; Hidden in Live SMS)
-              if (auth.mockOtpHint != null)
+              // Dynamic OTP Hint Pill (Shown strictly ONLY for Google Reviewer test numbers; completely hidden for admin & all real users)
+              if ((widget.phone == '+94770000000' || widget.phone == '+94711111111') && auth.mockOtpHint != null)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -165,7 +165,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     const Padding(
                       padding: EdgeInsets.only(left: 4.0),
                       child: Text(
-                        '💡 SMS Gateway is currently in Test Mode. You can log in using the code above.',
+                        '💡 Google Reviewer Test Account Mode.',
                         style: TextStyle(color: AppColors.textMuted, fontSize: 11),
                       ),
                     ),

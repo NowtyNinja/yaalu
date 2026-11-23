@@ -32,7 +32,6 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     bool isLoading = false;
     String? errorMessage;
     String? maskedPhone;
-    String? otpHint;
 
     showDialog(
       context: context,
@@ -103,14 +102,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                   ),
-                  if (otpHint != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        'Demo OTP Hint: $otpHint',
-                        style: const TextStyle(color: AppColors.onlineGreen, fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: newPhoneController,
                     keyboardType: TextInputType.phone,
@@ -168,7 +160,6 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                             isLoading = false;
                             if (res['data'] != null) {
                               maskedPhone = res['data']['maskedPhone']?.toString();
-                              otpHint = res['data']['recoveryOtpHint']?.toString();
                             }
                           });
                         } else {

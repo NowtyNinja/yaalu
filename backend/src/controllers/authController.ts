@@ -61,26 +61,25 @@ export class AuthController {
 
     const isTestNumber = phone === '+94770000000' || phone === '+94711111111';
 
-    // Fixed 123456 for Google Play reviewers / test accounts, random 6 digits for live users
+    // Fixed 123456 ONLY for Google Play review test accounts (+94770000000), random 6 digits for all live users & admin
     const code = isTestNumber
       ? '123456'
-      : isLiveSms
-      ? Math.floor(100000 + Math.random() * 900000).toString()
-      : '777777';
+      : Math.floor(100000 + Math.random() * 900000).toString();
 
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
 
     otpStore.set(phone, { code, expiresAt, attempts: 0 });
 
-    logger.info(`OTP generated for phone: [${phone}] (Code: ${isTestNumber ? 'TEST_123456' : isLiveSms ? '***' : code})`);
+    logger.info(`OTP generated for phone: [${phone}] (Code: ${isTestNumber ? 'TEST_123456' : '***'})`);
 
-    // Dispatch SMS via Notify.lk / Gateway (skip SMS for test numbers)
+    // Dispatch SMS via Notify.lk / Gateway (skip SMS only for test reviewer numbers)
     const smsDispatch = isTestNumber
-      ? { success: true, message: 'Google Play review test account bypass (Code: 123456)', provider: 'test_bypass' }
+      ? { success: true, message: 'Google Play review test account (Code: 123456)', provider: 'test_bypass' }
       : await smsService.sendSmsOtp(phone, code);
 
-    // Provide mockOtpHint if not live OR if live dispatch failed, so user is never locked out
-    const provideHint = !isLiveSms || !smsDispatch.success || phone === '+94786799544';
+    // SECURITY: NEVER send mockOtpHint for admin (+94786799544) or any real user!
+    // mockOtpHint is ONLY returned for test accounts (+94770000000) when NOT in live SMS mode.
+    const provideHint = isTestNumber && !isLiveSms;
 
     sendSuccess(
       res,
@@ -101,8 +100,10 @@ export class AuthController {
   public static async verifyOtp(req: Request, res: Response): Promise<void> {
     const { phone, otp } = req.body;
 
-    const isOwnerOrReviewer = phone === '+94786799544' || phone === '+94770000000' || phone === '+94711111111';
-    const isMasterBypass = isOwnerOrReviewer && (otp === '123456' || otp === '777777');
+    // SECURITY: Master bypass 123456 ONLY applies to the reviewer test account (+94770000000).
+    // The admin (+94786799544) and all real users MUST enter their real random SMS OTP.
+    const isTestNumber = phone === '+94770000000' || phone === '+94711111111';
+    const isMasterBypass = isTestNumber && otp === '123456';
 
     const record = otpStore.get(phone);
     if (!record && !isMasterBypass) {
@@ -309,7 +310,6 @@ export class AuthController {
       {
         newPhone: cleanNewPhone,
         expiresInSeconds: 300,
-        mockOtpHint: (!smsDispatch.success || cleanNewPhone === '+94786799544') ? code : undefined,
       },
       smsDispatch.success ? 'Verification code dispatched to your new phone number' : smsDispatch.message
     );
@@ -328,8 +328,7 @@ export class AuthController {
     }
 
     const cleanNewPhone = normalizePhone(newPhone);
-    const isMaster = otp === '123456' || otp === '777777';
-    if (!isMaster && (record.newPhone !== cleanNewPhone || record.code !== otp)) {
+    if (record.newPhone !== cleanNewPhone || record.code !== otp) {
       sendError(res, 'Invalid verification code. Please check and try again.', 400, 'INVALID_OTP');
       return;
     }
@@ -408,7 +407,6 @@ export class AuthController {
         email: cleanEmail,
         maskedPhone: masked,
         expiresInSeconds: 600,
-        recoveryOtpHint: code, // Provided so user is never locked out during testing
       },
       'A 6-digit recovery code has been generated. Enter the code and your new phone number to reclaim your account.'
     );
@@ -432,8 +430,7 @@ export class AuthController {
       return;
     }
 
-    const isMaster = otp === '123456' || otp === '777777';
-    if (!isMaster && record.code !== otp) {
+    if (record.code !== otp) {
       sendError(res, 'Invalid recovery verification code. Please check and try again.', 400, 'INVALID_OTP');
       return;
     }
