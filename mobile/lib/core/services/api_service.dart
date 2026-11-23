@@ -7,7 +7,7 @@ import '../security/secure_storage.dart';
 
 class ApiService {
   static final http.Client _client = http.Client();
-  static const Duration _timeout = Duration(seconds: 6);
+  static const Duration _timeout = Duration(seconds: 15);
 
   // Helper for Authenticated GET with Auto-Fallback
   static Future<Map<String, dynamic>> get(String url) async {

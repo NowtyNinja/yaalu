@@ -117,18 +117,18 @@ export function createApp(): Application {
   <div class="card">
     <div class="logo">Yaalu</div>
     <div class="tagline">MEET • VIBE • CONNECT</div>
-    <div class="badge">🚀 Version 1.0.4 (Android 8.1+ Ready)</div>
+    <div class="badge">🚀 Version 1.0.8 (Live Cloud Build)</div>
     
     <div class="features">
-      <div class="feature-item"><span>📱</span> <strong>Android 8.1.0 Ready</strong> (Huawei Y5 Lite / 32-bit)</div>
+      <div class="feature-item"><span>☁️</span> <strong>Live Cloud Connected</strong> (Render HTTPS / WSS)</div>
+      <div class="feature-item"><span>📩</span> <strong>Instant SMS OTP</strong> via Notify.lk Gateway</div>
+      <div class="feature-item"><span>📱</span> <strong>Universal Compatibility</strong> (32-bit & 64-bit Android)</div>
       <div class="feature-item"><span>🎙️</span> <strong>Real Voice Notes</strong> (Record & Send)</div>
-      <div class="feature-item"><span>🔊</span> <strong>In-App Audio Playback</strong> with Waveform</div>
-      <div class="feature-item"><span>✨</span> <strong>Modern Pitch Black UI</strong> & Sleek Cards</div>
       <div class="feature-item"><span>📸</span> <strong>Instant Photo Uploads</strong> (Gallery & Camera)</div>
     </div>
 
-    <a href="/download-apk?v=1.0.7&t=${Date.now()}" class="btn">
-      ⬇️ Download Yaalu v1.0.7 APK (Universal Build)
+    <a href="/download-apk?v=1.0.8&t=${Date.now()}" class="btn">
+      ⬇️ Download Yaalu v1.0.8 APK
     </a>
 
     <div class="alert-box">

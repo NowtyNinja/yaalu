@@ -48,6 +48,7 @@ mobile/android/**/GeneratedPluginRegistrant.java
 mobile/android/key.properties
 *.jks
 *.keystore
+*.apk
 
 # iOS
 mobile/ios/.generated/
