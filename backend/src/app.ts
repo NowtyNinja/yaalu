@@ -79,7 +79,7 @@ export function createApp(): Application {
     const apkPath = fs.existsSync(releaseApk) ? releaseApk : debugApk;
     
     // Provide a distinct versioned filename to prevent browser cache & download collisions
-    res.download(apkPath, 'yaalu-dating-v1.0.9.apk', (err) => {
+    res.download(apkPath, 'yaalu-dating-v1.0.10.apk', (err) => {
       if (err && !res.headersSent) {
         res.status(500).send('APK file not found or still compiling: ' + err.message);
       }
@@ -118,9 +118,10 @@ export function createApp(): Application {
     <img src="/icon.png" alt="Yaalu Logo" style="width: 84px; height: 84px; border-radius: 22px; margin-bottom: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
     <div class="logo">Yaalu</div>
     <div class="tagline">MEET • VIBE • CONNECT</div>
-    <div class="badge">🚀 Version 1.0.9 (Custom App Icon Build)</div>
+    <div class="badge">🚀 Version 1.0.10 (Seylan Bank Direct VIP Build)</div>
     
     <div class="features">
+      <div class="feature-item"><span>🏦</span> <strong>Direct Seylan Bank Transfer</strong> VIP Checkout</div>
       <div class="feature-item"><span>🎨</span> <strong>Official Yaalu App Icon</strong> Embedded</div>
       <div class="feature-item"><span>☁️</span> <strong>Live Cloud Connected</strong> (Render HTTPS / WSS)</div>
       <div class="feature-item"><span>📩</span> <strong>Instant SMS OTP</strong> via Notify.lk Gateway</div>
@@ -129,8 +130,8 @@ export function createApp(): Application {
       <div class="feature-item"><span>📸</span> <strong>Instant Photo Uploads</strong> (Gallery & Camera)</div>
     </div>
 
-    <a href="/download-apk?v=1.0.9&t=${Date.now()}" class="btn">
-      ⬇️ Download Yaalu v1.0.9 APK
+    <a href="/download-apk?v=1.0.10&t=${Date.now()}" class="btn">
+      ⬇️ Download Yaalu v1.0.10 APK
     </a>
 
     <div class="alert-box">

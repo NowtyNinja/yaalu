@@ -9,6 +9,15 @@ import { AuthenticatedRequest } from '../middlewares/authMiddleware';
 import { SubscriptionTier } from '../models/types';
 import { logger } from '../utils/logger';
 
+// Official Bank Account Details for VIP Transfers
+export const BANK_DETAILS = {
+  accountName: 'SELL PHONE TECH (PVT) LTD',
+  accountNumber: '011013666444120',
+  bankName: 'Seylan Bank',
+  branch: 'Gampaha',
+  instructions: 'Transfer the subscription fee via Online Banking, CDM, or Bank Counter. Use your phone number as the reference and submit the slip.',
+};
+
 // VIP Tier Pricing Table
 export const TIER_PRICING: Record<SubscriptionTier, { amountLkr: number; amountUsd: number; title: string }> = {
   free: { amountLkr: 0, amountUsd: 0, title: 'Free Tier' },
@@ -40,66 +49,14 @@ export const bankTransferSchema = z.object({
 });
 
 export class PaymentController {
-  // Get VIP Pricing Plans
+  // Get VIP Pricing Plans & Bank Details
   public static async getPlans(_req: Request, res: Response): Promise<void> {
-    sendSuccess(res, TIER_PRICING, 'Subscription plans retrieved');
+    sendSuccess(res, { plans: TIER_PRICING, bankDetails: BANK_DETAILS, ...TIER_PRICING }, 'Subscription plans retrieved');
   }
 
-  // Initiate PayHere Transaction (Generates MD5 checksum required by PayHere)
-  public static async initiatePayHere(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const user = req.user!;
-    const profile = db.getProfileByUserId(user.id);
-    const { tier } = req.body as { tier: SubscriptionTier };
-
-    const plan = TIER_PRICING[tier];
-    if (!plan) {
-      sendError(res, 'Invalid subscription tier selected', 400);
-      return;
-    }
-
-    const orderId = `YAALU_${Date.now()}_${uuidv4().substring(0, 8).toUpperCase()}`;
-    const amountFormatted = plan.amountLkr.toFixed(2);
-    const currency = 'LKR';
-    const merchantId = config.payhere.merchantId;
-    const merchantSecret = config.payhere.secret;
-
-    // PayHere Hash Calculation:
-    // md5(merchant_id + order_id + payhere_amount + payhere_currency + strtoupper(md5(merchant_secret)))
-    const hashedSecret = crypto
-      .createHash('md5')
-      .update(merchantSecret)
-      .digest('hex')
-      .toUpperCase();
-
-    const hashString = `${merchantId}${orderId}${amountFormatted}${currency}${hashedSecret}`;
-    const generatedHash = crypto
-      .createHash('md5')
-      .update(hashString)
-      .digest('hex')
-      .toUpperCase();
-
-    logger.info(`Generated PayHere checkout order [${orderId}] for User [${user.id}], Amount: [LKR ${amountFormatted}]`);
-
-    sendSuccess(
-      res,
-      {
-        merchantId,
-        orderId,
-        items: plan.title,
-        currency,
-        amount: amountFormatted,
-        hash: generatedHash,
-        tier,
-        firstName: profile?.displayName || 'Yaalu',
-        lastName: 'Member',
-        email: user.email || 'user@yaalu.lk',
-        phone: user.phone,
-        city: profile?.homeDistrict || 'Colombo',
-        country: 'Sri Lanka',
-        sandbox: config.payhere.env === 'sandbox',
-      },
-      'PayHere checkout parameters generated'
-    );
+  // Initiate PayHere Transaction (Currently Disabled per business policy)
+  public static async initiatePayHere(_req: AuthenticatedRequest, res: Response): Promise<void> {
+    sendError(res, 'PayHere is currently disabled. Please use Direct Bank Transfer to Seylan Bank.', 400, 'PAYHERE_DISABLED');
   }
 
   // PayHere IPN Webhook (Server-to-Server Instant Payment Notification)
