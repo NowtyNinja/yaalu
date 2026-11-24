@@ -20,13 +20,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
   List<dynamic> _users = [];
   List<dynamic> _payments = [];
   List<dynamic> _reports = [];
+  List<dynamic> _staff = [];
 
   final TextEditingController _userSearchCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _loadAllData();
   }
 
@@ -41,6 +42,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
     setState(() => _isLoading = true);
     await Future.wait([
       _fetchStats(),
+      _fetchStaff(),
       _fetchUsers(_userSearchCtrl.text),
       _fetchPayments(),
       _fetchReports(),
@@ -63,6 +65,85 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
         }
       }
     } catch (_) {}
+  }
+
+  Future<void> _fetchStaff() async {
+    try {
+      final res = await http.get(Uri.parse(ApiEndpoints.adminStaff), headers: _headers);
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['success'] == true && data['data'] != null) {
+          if (mounted) setState(() => _staff = data['data']['staff'] ?? []);
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<bool> _addStaffMember({
+    required String name,
+    required String phone,
+    required String username,
+    required String role,
+    required String password,
+  }) async {
+    try {
+      final res = await http.post(
+        Uri.parse(ApiEndpoints.adminStaff),
+        headers: _headers,
+        body: jsonEncode({
+          'name': name,
+          'phone': phone,
+          'username': username,
+          'role': role,
+          'password': password,
+        }),
+      );
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200 && data['success'] == true) {
+        _showToast('Staff member added: $name ($role) 🎉');
+        await _fetchStaff();
+        return true;
+      } else {
+        _showToast(data['message'] ?? 'Failed to add staff member');
+        return false;
+      }
+    } catch (e) {
+      _showToast('Network error: $e');
+      return false;
+    }
+  }
+
+  Future<void> _removeStaffMember(String staffId, String name) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Revoke Staff Access?'),
+        content: Text('Are you sure you want to revoke staff privileges for $name?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.passRed),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Revoke'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final res = await http.delete(
+        Uri.parse(ApiEndpoints.adminDeleteStaff(staffId)),
+        headers: _headers,
+      );
+      if (res.statusCode == 200) {
+        _showToast('Staff privileges revoked for $name');
+        await _fetchStaff();
+      }
+    } catch (e) {
+      _showToast('Error revoking staff: $e');
+    }
   }
 
   Future<void> _fetchUsers([String query = '']) async {
@@ -99,23 +180,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
         }
       }
     } catch (_) {}
-  }
-
-  Future<void> _toggleVerify(String userId, bool newStatus) async {
-    try {
-      final res = await http.patch(
-        Uri.parse(ApiEndpoints.adminVerify(userId)),
-        headers: _headers,
-        body: jsonEncode({'isVerified': newStatus}),
-      );
-      if (res.statusCode == 200) {
-        _showToast(newStatus ? 'Blue badge granted! 🛡️' : 'Blue badge revoked');
-        _fetchUsers(_userSearchCtrl.text);
-        _fetchStats();
-      }
-    } catch (e) {
-      _showToast('Failed to update verification: $e');
-    }
   }
 
   Future<void> _toggleBan(String userId, bool newBanned) async {
@@ -325,12 +389,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
         ],
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
           labelColor: AppColors.coral,
           unselectedLabelColor: AppColors.textSecondary,
           indicatorColor: AppColors.coral,
           indicatorWeight: 3,
           tabs: [
             const Tab(icon: Icon(Icons.dashboard_rounded, size: 20), text: 'KPIs'),
+            Tab(
+              icon: const Icon(Icons.badge_rounded, size: 20),
+              text: 'Team Staff (${_staff.length})',
+            ),
             Tab(
               icon: const Icon(Icons.people_alt_rounded, size: 20),
               text: 'Users (${_users.length})',
@@ -352,6 +421,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
               controller: _tabController,
               children: [
                 _buildKpiTab(),
+                _buildStaffTab(),
                 _buildUsersTab(),
                 _buildPaymentsTab(),
                 _buildReportsTab(),
@@ -411,7 +481,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
           childAspectRatio: 1.4,
           children: [
             _buildStatCard('Total Users', '${_stats['totalUsers'] ?? 0}', Icons.people_rounded, AppColors.coral),
-            _buildStatCard('Verified Users', '${_stats['verifiedUsers'] ?? 0}', Icons.verified_rounded, const Color(0xFF0284C7)),
+            _buildStatCard('Team Staff', '${_staff.length}', Icons.badge_rounded, const Color(0xFF8B5CF6)),
             _buildStatCard('VIP Active', '${_stats['vipUsers'] ?? 0}', Icons.workspace_premium_rounded, AppColors.vipGold),
             _buildStatCard('Banned Users', '${_stats['bannedUsers'] ?? 0}', Icons.block_rounded, AppColors.passRed),
             _buildStatCard('Total Matches', '${_stats['totalMatches'] ?? 0}', Icons.favorite_rounded, const Color(0xFFE91E63)),
@@ -540,6 +610,341 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
     );
   }
 
+  // --- Professional Staff & Roles Management Tab ---
+  Widget _buildStaffTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Professional Header
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: AppColors.softShadow,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.admin_panel_settings_rounded, color: AppColors.vipGold, size: 24),
+                      SizedBox(width: 8),
+                      Text(
+                        'STAFF & ROLE HIERARCHY',
+                        style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.vipGold.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${_staff.length} Active',
+                      style: const TextStyle(color: AppColors.vipGold, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Internal Operations Team',
+                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Assign staff roles (Moderators, Finance, Support) with isolated security permissions.',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.coral,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                  label: const Text('Add Staff Member', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: () => _showAddStaffDialog(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+
+        const Text(
+          'Registered Staff Members',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+        ),
+        const SizedBox(height: 10),
+
+        if (_staff.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.borderLight),
+            ),
+            child: const Center(
+              child: Text('No staff members registered yet.', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+          )
+        else
+          ..._staff.map((s) => _buildStaffCard(s)),
+      ],
+    );
+  }
+
+  Widget _buildStaffCard(dynamic s) {
+    final role = (s['role'] ?? 'moderator').toString().toLowerCase();
+    final name = s['name'] ?? 'Staff Member';
+    final phone = s['phone'] ?? '';
+    final username = s['username'] ?? '';
+    final staffId = s['id'] ?? '';
+    final isOwner = role == 'super_admin' || phone == '+94786799544';
+
+    Color roleColor;
+    IconData roleIcon;
+    String roleLabel;
+
+    switch (role) {
+      case 'super_admin':
+        roleColor = AppColors.vipGold;
+        roleIcon = Icons.workspace_premium_rounded;
+        roleLabel = 'SUPER ADMIN / OWNER';
+        break;
+      case 'admin':
+        roleColor = const Color(0xFFE65100);
+        roleIcon = Icons.security_rounded;
+        roleLabel = 'ADMINISTRATOR';
+        break;
+      case 'moderator':
+        roleColor = const Color(0xFF7C3AED);
+        roleIcon = Icons.shield_rounded;
+        roleLabel = 'CONTENT MODERATOR';
+        break;
+      case 'finance':
+        roleColor = AppColors.onlineGreen;
+        roleIcon = Icons.account_balance_wallet_rounded;
+        roleLabel = 'FINANCE / BANK SLIPS';
+        break;
+      case 'support':
+        roleColor = const Color(0xFF0284C7);
+        roleIcon = Icons.headset_mic_rounded;
+        roleLabel = 'CUSTOMER SUPPORT';
+        break;
+      default:
+        roleColor = AppColors.textSecondary;
+        roleIcon = Icons.badge_rounded;
+        roleLabel = role.toUpperCase();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderLight),
+        boxShadow: AppColors.softShadow,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: roleColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(roleIcon, color: roleColor, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        name,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: roleColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        roleLabel,
+                        style: TextStyle(color: roleColor, fontSize: 9.5, fontWeight: FontWeight.w800, letterSpacing: 0.3),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '$phone • @$username',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+          if (!isOwner)
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.passRed, size: 20),
+              tooltip: 'Revoke Privileges',
+              onPressed: () => _removeStaffMember(staffId, name),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddStaffDialog([Map<String, dynamic>? initialUser]) {
+    final nameCtrl = TextEditingController(text: initialUser?['displayName'] ?? '');
+    final phoneCtrl = TextEditingController(text: initialUser?['phone'] ?? '');
+    final usernameCtrl = TextEditingController();
+    final passCtrl = TextEditingController(text: 'staff123');
+    String selectedRole = 'moderator';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          title: const Row(
+            children: [
+              Icon(Icons.person_add_alt_1_rounded, color: AppColors.coral, size: 24),
+              SizedBox(width: 8),
+              Text('Add Staff Member', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Full Name:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                const SizedBox(height: 4),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Kasun Perera',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text('Mobile Phone:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                const SizedBox(height: 4),
+                TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    hintText: '077 XXXXXXX or +947X...',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text('Staff Username:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                const SizedBox(height: 4),
+                TextField(
+                  controller: usernameCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'e.g. kasun_mod',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text('Assign Role:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  value: selectedRole,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'moderator', child: Text('🛡️ Content Moderator')),
+                    DropdownMenuItem(value: 'finance', child: Text('💳 Finance & Bank Slips')),
+                    DropdownMenuItem(value: 'support', child: Text('🎧 Customer Support')),
+                    DropdownMenuItem(value: 'admin', child: Text('⭐ Operations Administrator')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setModalState(() => selectedRole = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+                const Text('Staff Login Password:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                const SizedBox(height: 4),
+                TextField(
+                  controller: passCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'Password',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.coral),
+              onPressed: () async {
+                final name = nameCtrl.text.trim();
+                final phone = phoneCtrl.text.trim();
+                final username = usernameCtrl.text.trim();
+                final pass = passCtrl.text.trim();
+                if (name.isEmpty || phone.isEmpty || username.isEmpty) {
+                  _showToast('Please fill all fields');
+                  return;
+                }
+                Navigator.pop(ctx);
+                await _addStaffMember(
+                  name: name,
+                  phone: phone,
+                  username: username,
+                  role: selectedRole,
+                  password: pass.isEmpty ? 'staff123' : pass,
+                );
+              },
+              child: const Text('Add Staff', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildUsersTab() {
     return Column(
       children: [
@@ -649,17 +1054,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              // Toggle Verify
+                              // Make Staff
                               OutlinedButton.icon(
                                 style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   visualDensity: VisualDensity.compact,
-                                  foregroundColor: isVerified ? AppColors.textSecondary : const Color(0xFF0284C7),
-                                  side: BorderSide(color: isVerified ? AppColors.borderLight : const Color(0xFF0284C7)),
+                                  foregroundColor: AppColors.coral,
+                                  side: const BorderSide(color: AppColors.coral),
                                 ),
-                                icon: Icon(isVerified ? Icons.cancel_outlined : Icons.verified_rounded, size: 14),
-                                label: Text(isVerified ? 'Revoke 🛡️' : 'Grant 🛡️', style: const TextStyle(fontSize: 11)),
-                                onPressed: () => _toggleVerify(u['id'], !isVerified),
+                                icon: const Icon(Icons.badge_outlined, size: 14),
+                                label: const Text('+ Staff', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                onPressed: () => _showAddStaffDialog(u),
                               ),
                               const SizedBox(width: 6),
 

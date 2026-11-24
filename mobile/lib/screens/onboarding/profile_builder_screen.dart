@@ -5,7 +5,7 @@ import '../../core/constants/api_endpoints.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/native_image_picker.dart';
 import '../../providers/auth_provider.dart';
-import 'ai_liveness_check_screen.dart';
+import '../home/main_navigation_screen.dart';
 
 class ProfileBuilderScreen extends StatefulWidget {
   const ProfileBuilderScreen({super.key});
@@ -356,6 +356,7 @@ class _ProfileBuilderScreenState extends State<ProfileBuilderScreen> {
       'birthDate': _birthDate.toIso8601String().split('T')[0],
       'age': _calculatedAge,
       'gender': _gender,
+      'interestedIn': _gender == 'female' ? ['male'] : ['female'],
       'datingIntention': _intention,
       'homeDistrict': _homeDistrict,
       'interests': _selectedInterests,
@@ -365,8 +366,9 @@ class _ProfileBuilderScreenState extends State<ProfileBuilderScreen> {
     if (!mounted) return;
 
     if (success) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const AiLivenessCheckScreen(fromOnboarding: true)),
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        (route) => false,
       );
     }
   }

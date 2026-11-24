@@ -188,21 +188,6 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                         ),
                       ),
-                      if (profile.isVerified)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE0F2FE),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.verified_rounded, color: Color(0xFF0284C7), size: 16),
-                              SizedBox(width: 4),
-                              Text('Verified', style: TextStyle(color: Color(0xFF0284C7), fontSize: 12, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -408,41 +393,14 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                // Verified Only Toggle Row
-                Row(
-                  children: [
-                    FilterChip(
-                      avatar: const Icon(Icons.verified_rounded, size: 16, color: Color(0xFF0284C7)),
-                      label: const Text('Verified Only'),
-                      selected: _verifiedOnly,
-                      selectedColor: const Color(0xFFE0F2FE),
-                      backgroundColor: AppColors.surface,
-                      labelStyle: TextStyle(
-                        color: _verifiedOnly ? const Color(0xFF0284C7) : AppColors.textSecondary,
-                        fontSize: 11,
-                        fontWeight: _verifiedOnly ? FontWeight.bold : FontWeight.normal,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        side: BorderSide(
-                          color: _verifiedOnly ? const Color(0xFF0284C7) : AppColors.borderLight,
-                        ),
-                      ),
-                      onSelected: (val) {
-                        setState(() => _verifiedOnly = val);
-                        _performSearch();
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    // Quick Interests Chip
-                    Expanded(
-                      child: SizedBox(
-                        height: 32,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _interests.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 6),
-                          itemBuilder: (ctx, index) {
+                // Quick Interests Chips
+                SizedBox(
+                  height: 32,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _interests.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 6),
+                    itemBuilder: (ctx, index) {
                             final interest = _interests[index];
                             final isSelected = _selectedInterest == interest;
                             return ChoiceChip(
@@ -471,9 +429,6 @@ class _SearchScreenState extends State<SearchScreen> {
                           },
                         ),
                       ),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),
@@ -560,28 +515,7 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  if (profile.isVerified)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.verified_rounded, color: Color(0xFF38BDF8), size: 14),
-                          SizedBox(width: 3),
-                          Text(
-                            'Verified',
-                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    const SizedBox.shrink(),
+                  const SizedBox.shrink(),
 
                   // Quick Like Button
                   GestureDetector(

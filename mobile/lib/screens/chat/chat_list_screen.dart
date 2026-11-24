@@ -236,10 +236,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                       ),
                                     ),
                                   ),
-                                  if (m.otherUser.isVerified) ...[
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.verified_rounded, color: Color(0xFF00B0FF), size: 16),
-                                  ],
                                 ],
                               ),
                               subtitle: const Row(

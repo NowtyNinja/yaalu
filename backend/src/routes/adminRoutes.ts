@@ -30,6 +30,11 @@ router.delete('/reports/:reportId', AdminController.resolveReport);
 router.get('/payments', AdminController.getPayments);
 router.post('/payments/:paymentId/approve', AdminController.approvePayment);
 
+// Staff Management
+router.get('/staff', AdminController.getStaff);
+router.post('/staff', AdminController.createStaff);
+router.delete('/staff/:staffId', AdminController.removeStaff);
+
 // Firebase & SMS Gateway Credentials Management
 router.get('/firebase-config', AdminController.getFirebaseConfig);
 router.post('/firebase-config', AdminController.updateFirebaseConfig);

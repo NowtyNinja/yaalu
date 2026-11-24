@@ -208,10 +208,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                             ),
                           ),
                         ),
-                        if (profile.isVerified) ...[
-                          const SizedBox(width: 8),
-                          const Icon(Icons.verified_rounded, color: Color(0xFF00B0FF), size: 24),
-                        ],
                       ],
                     ),
                   ),
@@ -668,14 +664,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                                           ),
                                         ),
                                       ),
-                                      if (current.isVerified) ...[
-                                        const SizedBox(width: 6),
-                                        const Icon(
-                                          Icons.verified_rounded,
-                                          color: Color(0xFF00B0FF),
-                                          size: 22,
-                                        ),
-                                      ],
                                     ],
                                   ),
                                 ),

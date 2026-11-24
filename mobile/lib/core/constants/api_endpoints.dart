@@ -68,6 +68,8 @@ class ApiEndpoints {
   static String adminApprovePayment(String paymentId) => '$baseUrl/admin/payments/$paymentId/approve';
   static String get adminReports => '$baseUrl/admin/reports';
   static String adminDismissReport(String reportId) => '$baseUrl/admin/reports/$reportId';
+  static String get adminStaff => '$baseUrl/admin/staff';
+  static String adminDeleteStaff(String staffId) => '$baseUrl/admin/staff/$staffId';
 
   // Switch to alternate host if connection error occurs
   static void switchHost() {

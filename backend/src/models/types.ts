@@ -35,12 +35,25 @@ export interface UserProfile {
   createdAt: string;
 }
 
+export type StaffRole = 'super_admin' | 'admin' | 'moderator' | 'finance' | 'support';
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  phone: string;
+  username: string;
+  role: StaffRole;
+  password?: string;
+  createdAt: string;
+  isActive: boolean;
+}
+
 export interface User {
   id: string;
   phone: string;
   email?: string;
   passwordHash?: string;
-  role: 'user' | 'admin' | 'moderator';
+  role: 'user' | 'admin' | 'moderator' | 'finance' | 'support';
   isBanned: boolean;
   isDeleted: boolean;
   subscriptionTier: SubscriptionTier;

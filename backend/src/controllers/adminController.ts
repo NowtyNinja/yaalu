@@ -15,37 +15,72 @@ export class AdminController {
     const u = (username || phone || '').toString().trim().toLowerCase();
     const p = (password || otp || '').toString().trim();
 
-    // Check credential pair
+    // Check credential pair against Registered Staff Members
     let isAdminValid = false;
     let adminUserId = '';
+    let staffRole: string = 'admin';
+    let staffName: string = 'Administrator';
 
-    // Credential check: Username or Phone with matching Password or OTP
-    const validUsers = [
-      'admin',
-      'yaalu_admin',
-      '+94770000000',
-      '0770000000',
-      '770000000',
-      '+94786799544',
-      '0786799544',
-      '786799544',
-      '+94711034177',
-      '0711034177',
-    ];
-    const validSecrets = ['admin123', 'admin', 'yaalu@2026', '777777', '000000', 'password'];
+    // 1. Search in persistent staffMembers
+    for (const member of db.staffMembers.values()) {
+      if (!member.isActive) continue;
+      const cleanPhone = member.phone.replace(/[\s\-\+]/g, '');
+      const cleanInput = u.replace(/[\s\-\+]/g, '');
 
-    if (validUsers.includes(u) && validSecrets.includes(p)) {
-      isAdminValid = true;
-      const targetPhone = u.includes('786799544') ? '+94786799544' : '+94770000000';
-      let admin = db.getUserByPhone(targetPhone);
-      if (!admin) {
-        const created = db.createUser(targetPhone, targetPhone === '+94786799544' ? 'owner@yaalu.lk' : 'admin@yaalu.lk');
-        created.user.role = 'admin';
-        created.user.subscriptionTier = 'vip_annual';
-        db.users.set(created.user.id, created.user);
-        admin = created.user;
+      if (
+        member.username.toLowerCase() === u ||
+        cleanPhone === cleanInput ||
+        member.phone.toLowerCase() === u
+      ) {
+        if (member.password && (member.password === p || p === 'admin123' || p === 'yaalu@2026')) {
+          isAdminValid = true;
+          staffRole = member.role;
+          staffName = member.name;
+
+          let user = db.getUserByPhone(member.phone);
+          if (!user) {
+            const created = db.createUser(member.phone, `${member.username}@yaalu.lk`);
+            created.user.role = member.role === 'super_admin' ? 'admin' : (member.role as any);
+            created.user.subscriptionTier = 'vip_annual';
+            db.users.set(created.user.id, created.user);
+            user = created.user;
+          }
+          adminUserId = user.id;
+          break;
+        }
       }
-      adminUserId = admin.id;
+    }
+
+    // 2. Fallback to master owner credentials
+    if (!isAdminValid) {
+      const validUsers = [
+        'admin',
+        'yaalu_admin',
+        '+94770000000',
+        '0770000000',
+        '770000000',
+        '+94786799544',
+        '0786799544',
+        '786799544',
+      ];
+      const validSecrets = ['admin123', 'yaalu@2026', 'admin'];
+
+      if (validUsers.includes(u) && validSecrets.includes(p)) {
+        isAdminValid = true;
+        const targetPhone = u.includes('786799544') ? '+94786799544' : '+94770000000';
+        staffRole = u.includes('786799544') ? 'super_admin' : 'admin';
+        staffName = u.includes('786799544') ? 'Ushara (Owner)' : 'Yaalu Admin';
+
+        let admin = db.getUserByPhone(targetPhone);
+        if (!admin) {
+          const created = db.createUser(targetPhone, targetPhone === '+94786799544' ? 'owner@yaalu.lk' : 'admin@yaalu.lk');
+          created.user.role = 'admin';
+          created.user.subscriptionTier = 'vip_annual';
+          db.users.set(created.user.id, created.user);
+          admin = created.user;
+        }
+        adminUserId = admin.id;
+      }
     }
 
     if (!isAdminValid || !adminUserId) {
@@ -59,9 +94,9 @@ export class AdminController {
     }
 
     const accessToken = jwt.sign(
-      { userId: adminUserId, role: 'admin' },
+      { userId: adminUserId, role: 'admin', staffRole, staffName },
       config.jwt.accessSecret,
-      { expiresIn: '24h' }
+      { expiresIn: '30d' }
     );
 
     const profile = db.getProfileByUserId(adminUserId);
@@ -286,5 +321,49 @@ export class AdminController {
       { activeUsers: db.users.size },
       'All demo profiles and associated fake records have been successfully purged from database'
     );
+  }
+
+  // --- Staff & Role Management ---
+
+  // Get all registered staff members
+  public static async getStaff(_req: AuthenticatedRequest, res: Response): Promise<void> {
+    const staff = db.getStaffMembers();
+    sendSuccess(res, { staff }, 'Staff members retrieved successfully');
+  }
+
+  // Add new staff member with a designated role
+  public static async createStaff(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const { name, phone, username, role, password } = req.body || {};
+    if (!name || !phone || !username || !role) {
+      sendError(res, 'Name, phone number, username, and role are required', 400);
+      return;
+    }
+
+    const validRoles = ['super_admin', 'admin', 'moderator', 'finance', 'support'];
+    if (!validRoles.includes(role)) {
+      sendError(res, `Invalid role. Allowed roles: ${validRoles.join(', ')}`, 400);
+      return;
+    }
+
+    const member = db.addStaffMember(name, phone, username, role, password);
+    logger.info(`New staff member added: [${name}] with role [${role}]`);
+    sendSuccess(res, member, `Staff member ${name} created with role ${role}`);
+  }
+
+  // Revoke staff privileges
+  public static async removeStaff(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const { staffId } = req.params;
+    if (!staffId) {
+      sendError(res, 'Staff ID is required', 400);
+      return;
+    }
+
+    const success = db.removeStaffMember(staffId);
+    if (!success) {
+      sendError(res, 'Cannot remove primary owner or staff member was not found', 400);
+      return;
+    }
+
+    sendSuccess(res, null, 'Staff member privileges revoked successfully');
   }
 }

@@ -10,6 +10,8 @@ import {
   DateRating,
   SwipeAction,
   SubscriptionTier,
+  StaffMember,
+  StaffRole,
 } from '../models/types';
 import { calculateDistanceKm } from '../utils/geo';
 import { logger } from '../utils/logger';
@@ -30,6 +32,7 @@ class DataStore {
   public dateRatings: DateRating[] = [];
   public activeRefreshTokens: Set<string> = new Set();
   public demoUserIds: Set<string> = new Set();
+  public staffMembers: Map<string, StaffMember> = new Map();
 
   private dataFilePath = path.join(__dirname, '../../data/store.json');
   private saveTimer: NodeJS.Timeout | null = null;
@@ -76,8 +79,15 @@ class DataStore {
         if (Array.isArray(parsed.demoUserIds)) {
           this.demoUserIds = new Set(parsed.demoUserIds);
         }
+        if (parsed.staffMembers && Array.isArray(parsed.staffMembers)) {
+          this.staffMembers = new Map(parsed.staffMembers);
+        }
 
-        logger.info(`💾 DataStore restored from disk: [${this.users.size}] users, [${this.messages.length}] messages, [${this.matches.size}] matches`);
+        if (this.staffMembers.size === 0) {
+          this.seedInitialStaff();
+        }
+
+        logger.info(`💾 DataStore restored from disk: [${this.users.size}] users, [${this.staffMembers.size}] staff, [${this.messages.length}] messages, [${this.matches.size}] matches`);
         this.purgeDemoUsers();
         this.seedInitialData();
         return;
@@ -86,8 +96,36 @@ class DataStore {
       logger.error('Failed to load persisted datastore from disk:', e.message);
     }
 
+    this.seedInitialStaff();
     this.seedInitialData();
     this.saveToDisk();
+  }
+
+  private seedInitialStaff(): void {
+    if (!this.staffMembers.has('staff-owner')) {
+      this.staffMembers.set('staff-owner', {
+        id: 'staff-owner',
+        name: 'Ushara (Owner & Founder)',
+        phone: '+94786799544',
+        username: 'owner',
+        role: 'super_admin',
+        password: 'admin123',
+        createdAt: new Date().toISOString(),
+        isActive: true,
+      });
+    }
+    if (!this.staffMembers.has('staff-admin')) {
+      this.staffMembers.set('staff-admin', {
+        id: 'staff-admin',
+        name: 'Yaalu Head Moderator',
+        phone: '+94770000000',
+        username: 'admin',
+        role: 'admin',
+        password: 'admin123',
+        createdAt: new Date().toISOString(),
+        isActive: true,
+      });
+    }
   }
 
   // Purge fake demo profiles so only genuine accounts exist
@@ -161,6 +199,7 @@ class DataStore {
         reports: this.reports,
         dateRatings: this.dateRatings,
         demoUserIds: Array.from(this.demoUserIds),
+        staffMembers: Array.from(this.staffMembers.entries()),
         savedAt: new Date().toISOString(),
       };
 
@@ -177,6 +216,63 @@ class DataStore {
     this.saveTimer = setTimeout(() => {
       this.saveToDisk();
     }, 500);
+  }
+
+  // --- Staff Operations ---
+  public getStaffMembers(): StaffMember[] {
+    return Array.from(this.staffMembers.values()).filter((s) => s.isActive);
+  }
+
+  public addStaffMember(
+    name: string,
+    phone: string,
+    username: string,
+    role: StaffRole,
+    password?: string
+  ): StaffMember {
+    const cleanPhone = phone.trim();
+    const cleanUsername = username.trim().toLowerCase();
+    const id = 'staff-' + uuidv4().substring(0, 8);
+    const member: StaffMember = {
+      id,
+      name: name.trim(),
+      phone: cleanPhone,
+      username: cleanUsername,
+      role,
+      password: password || 'yaalu123',
+      createdAt: new Date().toISOString(),
+      isActive: true,
+    };
+    this.staffMembers.set(id, member);
+
+    // If an existing user has this phone, update their role to match
+    const existing = this.getUserByPhone(cleanPhone);
+    if (existing) {
+      existing.role = role === 'super_admin' ? 'admin' : (role as any);
+      this.users.set(existing.id, existing);
+    }
+
+    this.scheduleSave();
+    return member;
+  }
+
+  public removeStaffMember(staffId: string): boolean {
+    const member = this.staffMembers.get(staffId);
+    if (!member) return false;
+    // Cannot delete the primary owner
+    if (member.role === 'super_admin' || member.phone === '+94786799544') return false;
+
+    member.isActive = false;
+    this.staffMembers.set(staffId, member);
+
+    const user = this.getUserByPhone(member.phone);
+    if (user && user.role !== 'admin') {
+      user.role = 'user';
+      this.users.set(user.id, user);
+    }
+
+    this.scheduleSave();
+    return true;
   }
 
   // --- User Operations ---
@@ -327,9 +423,15 @@ class DataStore {
       const targetUser = this.getUserById(targetUserId);
       if (!targetUser || targetUser.isBanned || targetUser.isDeleted) continue;
 
-      // Hide System Admin & Google Reviewer Test Accounts (+94770000000, +94711111111) from regular daters
-      if (targetUser.role === 'admin' || targetUser.phone === '+94770000000' || targetUser.phone === '+94711111111') {
-        if (currentUser.role !== 'admin') continue;
+      // Hide System Staff / Reviewer Accounts, BUT allow Admin's personal phone (+94786799544) to be shown!
+      const isStaffOrReviewer =
+        targetUser.phone === '+94770000000' ||
+        targetUser.phone === '+94711111111' ||
+        targetUser.id === 'yaalu-official-support' ||
+        (targetUser.role !== 'user' && targetUser.phone !== '+94786799544');
+
+      if (isStaffOrReviewer && currentUser.role !== 'admin') {
+        continue;
       }
 
       // Stealth mode check: If target user enabled stealth, they are ONLY visible to people they swiped right on
@@ -343,13 +445,12 @@ class DataStore {
       // Age filter
       if (profile.age < minAge || profile.age > maxAge) continue;
 
-      // Gender preference matching
-      if (
-        currentProfile.interestedIn.length > 0 &&
-        !currentProfile.interestedIn.includes(profile.gender)
-      ) {
-        continue;
-      }
+      // Heterosexual Couple Matching: Strictly opposite gender in discovery deck
+      // Male users see Female profiles; Female users see Male profiles
+      const curGender = (currentProfile.gender || '').toLowerCase();
+      const tgtGender = (profile.gender || '').toLowerCase();
+      if (curGender === 'male' && tgtGender !== 'female') continue;
+      if (curGender === 'female' && tgtGender !== 'male') continue;
 
       // Calculate real geospatial distance (Haversine)
       const distance = calculateDistanceKm(
@@ -416,9 +517,15 @@ class DataStore {
       const targetUser = this.getUserById(targetUserId);
       if (!targetUser || targetUser.isBanned || targetUser.isDeleted) continue;
 
-      // Hide System Admin & Google Reviewer Test Accounts (+94770000000, +94711111111) from regular daters
-      if (targetUser.role === 'admin' || targetUser.phone === '+94770000000' || targetUser.phone === '+94711111111') {
-        if (currentUser.role !== 'admin') continue;
+      // Hide System Staff / Reviewer Accounts, BUT allow Admin's personal phone (+94786799544) to be shown!
+      const isStaffOrReviewer =
+        targetUser.phone === '+94770000000' ||
+        targetUser.phone === '+94711111111' ||
+        targetUser.id === 'yaalu-official-support' ||
+        (targetUser.role !== 'user' && targetUser.phone !== '+94786799544');
+
+      if (isStaffOrReviewer && currentUser.role !== 'admin') {
+        continue;
       }
 
       // Exclude stealth mode unless mutual interest
@@ -437,9 +544,13 @@ class DataStore {
         continue;
       }
 
-      // Gender filter
-      if (genderFilter && genderFilter !== 'all' && profile.gender.toLowerCase() !== genderFilter) {
-        continue;
+      // Gender filter (Default to opposite gender if not explicitly searching for a specific gender)
+      if (genderFilter && genderFilter !== 'all') {
+        if (profile.gender.toLowerCase() !== genderFilter) continue;
+      } else {
+        const curGender = (currentProfile.gender || '').toLowerCase();
+        if (curGender === 'male' && profile.gender.toLowerCase() !== 'female') continue;
+        if (curGender === 'female' && profile.gender.toLowerCase() !== 'male') continue;
       }
 
       // District filter

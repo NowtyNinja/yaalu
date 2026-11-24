@@ -488,8 +488,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.verified_rounded, color: Color(0xFF00B0FF), size: 16),
                     ],
                   ),
                   const Text(
