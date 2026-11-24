@@ -328,7 +328,7 @@ class _ProfileBuilderScreenState extends State<ProfileBuilderScreen> {
     );
   }
 
-  void _proceedToAiVerification() async {
+  void _completeProfile() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -802,10 +802,13 @@ class _ProfileBuilderScreenState extends State<ProfileBuilderScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: auth.isLoading ? null : _proceedToAiVerification,
+                  onPressed: auth.isLoading ? null : _completeProfile,
                   child: auth.isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Next: AI Face Verification 📸'),
+                      : const Text(
+                          'Complete Profile & Start Dating 🚀',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
                 ),
               ),
               const SizedBox(height: 24),

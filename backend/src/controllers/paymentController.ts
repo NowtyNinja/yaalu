@@ -6,7 +6,7 @@ import { config } from '../config';
 import { db } from '../database/store';
 import { sendSuccess, sendError } from '../utils/response';
 import { AuthenticatedRequest } from '../middlewares/authMiddleware';
-import { SubscriptionTier } from '../models/types';
+import { SubscriptionTier, PaymentTransaction } from '../models/types';
 import { logger } from '../utils/logger';
 
 // Official Bank Account Details for VIP Transfers
@@ -120,27 +120,9 @@ export class PaymentController {
     res.status(200).send('OK');
   }
 
-  // Apple & Google In-App Purchase Receipt Validation
-  public static async verifyIapReceipt(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const user = req.user!;
-    const { tier, platform, receiptToken } = req.body;
-
-    // In production: Query Apple App Store Server API (v2) or Google Play Developer API
-    logger.info(`Validating IAP receipt for user [${user.id}], Platform: [${platform}], Token len: [${receiptToken.length}]`);
-
-    // Verify receipt authenticity (Simulated valid check for client testing)
-    const orderId = `IAP_${platform.toUpperCase()}_${Date.now()}`;
-    const amount = TIER_PRICING[tier as SubscriptionTier]?.amountLkr || 2490;
-
-    const transaction = db.activateSubscription(
-      user.id,
-      tier as SubscriptionTier,
-      platform === 'apple' ? 'apple_iap' : 'google_play',
-      amount,
-      orderId
-    );
-
-    sendSuccess(res, transaction, 'In-App Purchase verified and VIP activated!');
+  // Apple & Google In-App Purchase Receipt Validation (Disabled temporarily per owner request)
+  public static async verifyIapReceipt(_req: AuthenticatedRequest, res: Response): Promise<void> {
+    sendError(res, 'In-App Purchase is currently disabled. Please use Bank Transfer via Seylan Bank.', 400);
   }
 
   // Bank Transfer Submission (Direct Bank Transfer with WhatsApp verification)
@@ -157,23 +139,34 @@ export class PaymentController {
     const orderId = `BT_${Date.now()}_${uuidv4().substring(0, 6).toUpperCase()}`;
     const amount = plan.amountLkr;
 
-    const transaction = db.activateSubscription(
-      user.id,
-      tier as SubscriptionTier,
-      'bank_transfer',
-      amount,
+    // Create a PENDING transaction requiring admin approval upon slip receipt
+    const paymentId = uuidv4();
+    const transaction: PaymentTransaction = {
+      id: paymentId,
+      userId: user.id,
       orderId,
-      { bankName, referenceCode, slipNote }
-    );
+      amount,
+      currency: 'LKR',
+      tier: tier as SubscriptionTier,
+      provider: 'bank_transfer',
+      status: 'pending',
+      bankName: bankName || 'Seylan Bank',
+      referenceCode: referenceCode,
+      slipNote: slipNote || 'Deposit slip submitted for verification',
+      createdAt: new Date().toISOString(),
+    };
+
+    db.payments.set(paymentId, transaction);
+    db.scheduleSave();
 
     logger.info(
-      `Bank transfer processed for user [${user.id}], Bank: [${bankName}], Ref: [${referenceCode}], Order: [${orderId}]`
+      `Bank transfer submitted (PENDING) for user [${user.id}], Bank: [${bankName}], Ref: [${referenceCode}], Order: [${orderId}]`
     );
 
     sendSuccess(
       res,
       transaction,
-      'Bank transfer registered! Please ensure slip is sent to WhatsApp +94 78 679 9544.'
+      'Bank transfer registered! Please ensure deposit slip is sent to WhatsApp +94 78 679 9544. VIP will be activated upon admin verification.'
     );
   }
 }

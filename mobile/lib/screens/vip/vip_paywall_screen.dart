@@ -18,7 +18,6 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
   static const MethodChannel _platformChannel = MethodChannel('com.yaalu.dating/launcher');
 
   String _selectedTier = 'vip_monthly';
-  String _paymentProvider = 'bank_transfer';
   bool _isSubmitting = false;
 
   final Map<String, String> _tierPrices = {
@@ -95,8 +94,9 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('🎉 Bank transfer notification submitted! VIP activated.'),
-            backgroundColor: Color(0xFF00C853),
+            content: Text('📋 Slip notification submitted! Please send your deposit slip to WhatsApp (+94 78 679 9544). VIP activates upon admin verification.'),
+            backgroundColor: Color(0xFF0284C7),
+            duration: Duration(seconds: 5),
           ),
         );
       }
@@ -105,85 +105,6 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
-        );
-      }
-    }
-  }
-
-  void _processPayment() async {
-    final vip = context.read<VipProvider>();
-    final auth = context.read<AuthProvider>();
-
-    if (_paymentProvider == 'payhere') {
-      final checkoutData = await vip.initiatePayHere(_selectedTier);
-      if (checkoutData != null && mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            title: Row(
-              children: const [
-                Icon(Icons.payment_rounded, color: AppColors.vipGold),
-                SizedBox(width: 8),
-                Text('PayHere Checkout', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Order ID: ${checkoutData['orderId']}',
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                const SizedBox(height: 8),
-                Text('Amount: ${checkoutData['currency']} ${checkoutData['amount']}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.coral)),
-                const SizedBox(height: 14),
-                const Text(
-                  'Simulation Note: In sandbox mode, click Complete Payment to simulate a verified PayHere IPN webhook callback.',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  Navigator.of(ctx).pop();
-                  await auth.checkAuthStatus();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('🎉 PayHere Payment Verified! Yaalu VIP is now active.'),
-                        backgroundColor: Color(0xFF00C853),
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Complete Payment'),
-              ),
-            ],
-          ),
-        );
-      }
-    } else {
-      final success = await vip.verifyIap(
-        tierKey: _selectedTier,
-        platform: 'apple',
-        receiptToken: 'mock_apple_store_receipt_token_valid',
-        productId: 'com.yaalu.vip.monthly',
-      );
-
-      if (success && mounted) {
-        await auth.checkAuthStatus();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🎉 In-App Purchase Verified! VIP Active.'),
-            backgroundColor: Color(0xFF00C853),
-          ),
         );
       }
     }
@@ -402,7 +323,7 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Payment Gateway Selector Tabs
+              // Payment Method
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -412,169 +333,119 @@ class _VipPaywallScreenState extends State<VipPaywallScreen> {
               ),
               const SizedBox(height: 10),
 
-              Row(
-                children: [
-                  // Bank Transfer Tab (Recommended)
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _paymentProvider = 'bank_transfer'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: _paymentProvider == 'bank_transfer' ? Colors.white : AppColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: _paymentProvider == 'bank_transfer' ? AppColors.vipGold : AppColors.borderLight,
-                            width: _paymentProvider == 'bank_transfer' ? 2 : 1,
-                          ),
-                          boxShadow: _paymentProvider == 'bank_transfer' ? AppColors.softShadow : null,
-                        ),
-                        child: Column(
-                          children: const [
-                            Icon(Icons.account_balance_rounded, color: AppColors.vipGold, size: 24),
-                            SizedBox(height: 6),
-                            Text(
-                              '🏦 Bank Transfer',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // App Store / Google Play
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _paymentProvider = 'iap'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: _paymentProvider == 'iap' ? Colors.white : AppColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: _paymentProvider == 'iap' ? AppColors.textPrimary : AppColors.borderLight,
-                            width: _paymentProvider == 'iap' ? 2 : 1,
-                          ),
-                          boxShadow: _paymentProvider == 'iap' ? AppColors.softShadow : null,
-                        ),
-                        child: Column(
-                          children: const [
-                            Icon(Icons.shop_two_rounded, color: AppColors.textPrimary, size: 24),
-                            SizedBox(height: 6),
-                            Text(
-                              '📱 In-App Store',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-
-              // Bank Transfer Details Card
-              if (_paymentProvider == 'bank_transfer') ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: AppColors.vipGold.withValues(alpha: 0.5), width: 1.2),
-                    boxShadow: AppColors.softShadow,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: const [
-                          Icon(Icons.account_balance_outlined, color: AppColors.vipGold, size: 22),
-                          SizedBox(width: 8),
+              // Official Bank Transfer Header Banner
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.vipGold, width: 1.5),
+                  boxShadow: AppColors.softShadow,
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.account_balance_rounded, color: AppColors.vipGold, size: 28),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            'Sri Lankan Bank Deposit Details',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+                            '🏦 Bank Deposit & Transfer',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Direct Seylan Bank transfer with WhatsApp verification',
+                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
-
-                      _buildBankDetailRow('Bank Name', 'Seylan Bank'),
-                      _buildBankDetailRow('Account Name', 'SELL PHONE TECH (PVT)  LTD'),
-                      _buildBankDetailRowWithCopy('Account Number', '011013666444120'),
-                      _buildBankDetailRow('Branch', 'Gampaha'),
-                      _buildBankDetailRowWithCopy('WhatsApp for Slip', '+94 78 679 9544', isHighlight: true),
-                      _buildBankDetailRow('Transfer Amount', amount, isHighlight: true),
-                      _buildBankDetailRowWithCopy('Reference Code', refCode, isHighlight: true),
-
-                      const Divider(height: 24),
-
-                      const Text(
-                        'Instructions: \n1. Transfer subscription fee to the Seylan Bank account above.\n2. Send your deposit slip screenshot to official WhatsApp: +94 78 679 9544.\n3. Mention your Reference Code in the message.\n4. VIP access will be unlocked immediately upon verification!',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.45),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Direct WhatsApp Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
-                          label: const Text('Send Slip to WhatsApp (+94 78 679 9544) 💬', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF25D366),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                          onPressed: () => _openWhatsAppSupport(phone, refCode),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Confirm & Unlock in App Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.check_circle_outline_rounded, color: AppColors.vipGold),
-                          label: _isSubmitting
-                              ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.vipGold))
-                              : const Text('I have sent the slip (Activate VIP)', style: TextStyle(color: Color(0xFF996500), fontWeight: FontWeight.bold)),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.vipGold),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                          onPressed: _isSubmitting ? null : () => _submitBankTransferActivation(phone, refCode),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ] else ...[
-                // Default Upgrade Button for PayHere and IAP
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.vipGold,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    onPressed: vip.isLoading ? null : _processPayment,
-                    child: vip.isLoading
-                        ? const CircularProgressIndicator(color: Colors.black)
-                        : Text('Proceed to Pay ($amount)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                  ),
+                  ],
                 ),
-              ],
+              ),
+              const SizedBox(height: 16),
+
+              // Bank Transfer Details Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: AppColors.vipGold.withValues(alpha: 0.5), width: 1.2),
+                  boxShadow: AppColors.softShadow,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.account_balance_outlined, color: AppColors.vipGold, size: 22),
+                        SizedBox(width: 8),
+                        Text(
+                          'Sri Lankan Bank Deposit Details',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    _buildBankDetailRow('Bank Name', 'Seylan Bank'),
+                    _buildBankDetailRow('Account Name', 'SELL PHONE TECH (PVT)  LTD'),
+                    _buildBankDetailRowWithCopy('Account Number', '011013666444120'),
+                    _buildBankDetailRow('Branch', 'Gampaha'),
+                    _buildBankDetailRowWithCopy('WhatsApp for Slip', '+94 78 679 9544', isHighlight: true),
+                    _buildBankDetailRow('Transfer Amount', amount, isHighlight: true),
+                    _buildBankDetailRowWithCopy('Reference Code', refCode, isHighlight: true),
+
+                    const Divider(height: 24),
+
+                    const Text(
+                      'Instructions: \n1. Transfer subscription fee to the Seylan Bank account above.\n2. Send your deposit slip screenshot to official WhatsApp: +94 78 679 9544.\n3. Mention your Reference Code in the message.\n4. VIP access will be unlocked immediately upon admin verification!',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.45),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Direct WhatsApp Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
+                        label: const Text('Send Slip to WhatsApp (+94 78 679 9544) 💬', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF25D366),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        onPressed: () => _openWhatsAppSupport(phone, refCode),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Confirm & Submit Notification
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.check_circle_outline_rounded, color: AppColors.vipGold),
+                        label: _isSubmitting
+                            ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.vipGold))
+                            : const Text('Notify Admin of Deposit (Submit Slip)', style: TextStyle(color: Color(0xFF996500), fontWeight: FontWeight.bold)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.vipGold),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        onPressed: _isSubmitting ? null : () => _submitBankTransferActivation(phone, refCode),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
             ] else ...[
               // VIP Active section
               const SizedBox(height: 16),

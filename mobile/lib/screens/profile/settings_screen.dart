@@ -639,7 +639,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 40),
           const Center(
             child: Text(
-              'Yaalu v1.0.13 (Build 14)\nConnecting people everywhere',
+              'Yaalu v1.0.14 (Build 15)\nConnecting people everywhere',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
